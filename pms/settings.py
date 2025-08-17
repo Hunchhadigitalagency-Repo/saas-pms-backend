@@ -33,6 +33,12 @@ CORS_ALLOWED_ORIGINS = [
     "https://pms.hunchhadigital.com.np"
 ]
 
+CSRF_TRUSTED_ORIGINS = [
+    "https://pms.hunchhadigital.com.np",
+    "https://*.pms.hunchhadigital.com.np",
+    "http://localhost:5173",
+]
+
 CORS_ALLOW_METHODS = (
     "DELETE",
     "GET",
