@@ -28,8 +28,7 @@ DEBUG = True
 ALLOWED_HOSTS = ['*','pms.hunchhadigital.com.np']
 
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5174",
-    "http://localhost:5173",
+    "http://localhost",
     "http://demo.localhost",
     "https://pms.hunchhadigital.com.np"
 ]
