@@ -25,11 +25,12 @@ SECRET_KEY = 'django-insecure-t(v)6aymn*4m==)1w4$=q*7$+3iw*p^5^2qnquap2$h(2-&2pf
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['*']
+ALLOWED_HOSTS = ['*','pms.hunchhadigital.com.np']
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
     "http://demo.localhost",
+    "https://pms.hunchhadigital.com.np"
 ]
 
 CORS_ALLOW_METHODS = (
