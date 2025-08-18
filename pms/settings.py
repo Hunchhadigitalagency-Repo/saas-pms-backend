@@ -94,6 +94,8 @@ SHARED_APPS = (
     'rest_framework_simplejwt',
     'corsheaders',
     'rest_framework',
+    "rest_framework_simplejwt.token_blacklist",
+
 )
 
 TENANT_APPS = (
@@ -120,7 +122,6 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
-    "rest_framework_simplejwt.token_blacklist",
 ]
 
 ROOT_URLCONF = 'pms.urls'

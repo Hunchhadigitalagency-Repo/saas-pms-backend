@@ -14,4 +14,4 @@ python manage.py migrate_schemas --shared
 python manage.py migrate_schemas --tenant
 
 # Start Daphne
-exec daphne -b 0.0.0.0 -p 8001 pms.asgi:application --reload
+exec daphne -b 0.0.0.0 -p 8001 pms.asgi:application
