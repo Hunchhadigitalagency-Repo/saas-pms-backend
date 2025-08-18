@@ -11,6 +11,7 @@ from customer.models import ActiveClient, Client, Domain, UserClientRole
 from ...models import UserProfile
 
 
+
 class AuthViewSet(viewsets.ViewSet):
     permission_classes = [AllowAny]  # applies to all actions in this viewset
 
@@ -138,9 +139,10 @@ class AuthViewSet(viewsets.ViewSet):
 
     def logout(self, request, *args, **kwargs):
         try:
-            refresh_token = request.data["refresh"]
+            refresh_token = request.data.get("refresh")
             token = RefreshToken(refresh_token)
             token.blacklist()
             return Response(status=status.HTTP_205_RESET_CONTENT)
         except Exception as e:
-            return Response(data={"error": str(e)})
+            return Response(data={"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
