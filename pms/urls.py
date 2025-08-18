@@ -33,4 +33,5 @@ urlpatterns = [
     # Include all your app APIs
     path("api/v1/", include("user.urls")),        # your user/auth endpoints
     path("api/v1/", include("project.urls")),       # your project endpoints
+    path("api/v1/", include("task.urls")),          # your task endpoints
 ]
