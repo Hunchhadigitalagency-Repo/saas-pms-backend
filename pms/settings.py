@@ -99,7 +99,7 @@ SHARED_APPS = (
 TENANT_APPS = (
     # your tenant-specific apps
     'project',
-    # 'tasks'
+    'task',
 )
 
 INSTALLED_APPS = list(SHARED_APPS) + [app for app in TENANT_APPS if app not in SHARED_APPS]
