@@ -1,7 +1,7 @@
 from rest_framework import serializers
-from task.models import Task
 from django.contrib.auth.models import User
 from project.models import Project
+from ...models import WorkItems
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -13,10 +13,10 @@ class ProjectSerializer(serializers.ModelSerializer):
         model = Project
         fields = ['id', 'name',]
 
-class TaskSerializer(serializers.ModelSerializer):
+class WorkItemsSerializer(serializers.ModelSerializer):
     assigned_to = UserSerializer(many=True, read_only=True)
     project = ProjectSerializer(read_only=True)
 
     class Meta:
-        model = Task
+        model = WorkItems
         fields = '__all__'
