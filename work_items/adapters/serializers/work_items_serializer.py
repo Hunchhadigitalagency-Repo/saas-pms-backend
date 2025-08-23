@@ -7,7 +7,7 @@ from ...models import WorkItems
 class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserProfile
-        fields = ('profile_picture')
+        fields = ('profile_picture',)
 
 class UserSerializer(serializers.ModelSerializer):
     profile = UserProfileSerializer()
