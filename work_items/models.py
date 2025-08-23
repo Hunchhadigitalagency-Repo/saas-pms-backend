@@ -16,6 +16,6 @@ class WorkItems(models.Model):
         ('high', 'High'),
     ])
     project = models.ForeignKey('project.Project', on_delete=models.CASCADE, null=True, blank=True)
-    assigned_to = models.ManyToManyField(User, blank=True)
+    assigned_to = models.ManyToManyField(User, related_name='assigned_work_items', blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
