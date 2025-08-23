@@ -1,8 +1,9 @@
 from django.contrib.auth import authenticate
 from django.shortcuts import get_object_or_404
 from django.urls import reverse_lazy
+from backend.user.adapters.serializers.user_serializers import UserSerializer
 from rest_framework import status, viewsets
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -146,3 +147,17 @@ class AuthViewSet(viewsets.ViewSet):
         except Exception as e:
             return Response(data={"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
 
+class ClientViewSet(viewsets.ModelViewSet):
+    permission_classes = [IsAuthenticated]
+
+    def my_client_users(self, request, *args, **kwargs):
+        user = request.user
+        user_active_client = ActiveClient.objects.filter(user=user).first()
+        if not user_active_client:
+            return Response({"error": "No active client found for this user"}, status=status.HTTP_404_NOT_FOUND)
+
+        users_in_this_client = UserClientRole.objects.filter(client=user_active_client.client).select_related('user')
+        client_users = [user_role.user for user_role in users_in_this_client]
+
+        serializer = UserSerializer(client_users, many=True)
+        return Response(serializer.data)
