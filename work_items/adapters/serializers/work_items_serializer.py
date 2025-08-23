@@ -27,3 +27,16 @@ class WorkItemsSerializer(serializers.ModelSerializer):
     class Meta:
         model = WorkItems
         fields = '__all__'
+
+class WorkItemsWriteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = WorkItems
+        fields = (
+            'title',
+            'description',
+            'due_date',
+            'status',
+            'priority',
+            'project',
+            'assigned_to',
+        )
