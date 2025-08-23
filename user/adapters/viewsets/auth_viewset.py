@@ -7,6 +7,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.decorators import action
 from rest_framework_simplejwt.tokens import RefreshToken
+from drf_spectacular.utils import extend_schema
 from django.contrib.auth.models import User
 from customer.models import ActiveClient, Client, Domain, UserClientRole
 from ...models import UserProfile
@@ -150,6 +151,13 @@ class AuthViewSet(viewsets.ViewSet):
 class ClientViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        summary="Get users associated with the authenticated user's active client",
+        description="Retrieves a list of all users who are part of the same active client as the authenticated user.",
+        responses={
+            200: UserSerializer(many=True)
+        }
+    )
     def my_client_users(self, request, *args, **kwargs):
         user = request.user
         user_active_client = ActiveClient.objects.filter(user=user).first()
