@@ -1,7 +1,7 @@
 from django.contrib.auth import authenticate
 from django.shortcuts import get_object_or_404
 from django.urls import reverse_lazy
-from ..serializers.user_serializers import UserSerializer
+from ..serializers.user_serializers import UserSerializer, LoginSerializer
 from rest_framework import status, viewsets
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -16,6 +16,7 @@ from ...models import UserProfile
 
 class AuthViewSet(viewsets.ViewSet):
     permission_classes = [AllowAny]  # applies to all actions in this viewset
+    serializer_class = LoginSerializer
 
     @action(detail=False, methods=["post"])
     def login_with_email(self, request):

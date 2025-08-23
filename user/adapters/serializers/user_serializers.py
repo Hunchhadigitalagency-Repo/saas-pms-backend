@@ -2,6 +2,12 @@ from rest_framework import serializers
 from django.contrib.auth.models import User
 from user.models import UserProfile
 
+
+class LoginSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    password = serializers.CharField()
+
+
 class ProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserProfile

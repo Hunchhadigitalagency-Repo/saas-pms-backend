@@ -74,6 +74,12 @@ SPECTACULAR_SETTINGS = {
     "DESCRIPTION": "API documentation for my multi-tenant Django project",
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,  # don’t show raw schema in Swagger
+    "ENUM_NAME_OVERRIDES": {
+        "ProjectSerializer.priority": "ProjectPriorityEnum",
+        "ProjectSerializer.status": "ProjectStatusEnum",
+        "WorkItemsWriteSerializer.priority": "WorkItemPriorityEnum",
+        "WorkItemsWriteSerializer.status": "WorkItemStatusEnum",
+    },
 }
 
 
