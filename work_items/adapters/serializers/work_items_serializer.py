@@ -1,4 +1,4 @@
-from backend.user.models import UserProfile
+from user.models import UserProfile
 from rest_framework import serializers
 from django.contrib.auth.models import User
 from project.models import Project
