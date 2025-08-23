@@ -1,7 +1,7 @@
 from django.contrib.auth import authenticate
 from django.shortcuts import get_object_or_404
 from django.urls import reverse_lazy
-from backend.user.adapters.serializers.user_serializers import UserSerializer
+from ..serializers.user_serializers import UserSerializer
 from rest_framework import status, viewsets
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
