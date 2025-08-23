@@ -4,25 +4,25 @@ from django.contrib.auth.models import User
 from project.models import Project
 from ...models import WorkItems
 
-class UserProfileSerializer(serializers.ModelSerializer):
+class WorkItemUserProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = UserProfile
         fields = ('profile_picture',)
 
-class UserSerializer(serializers.ModelSerializer):
-    profile = UserProfileSerializer()
+class WorkItemUserSerializer(serializers.ModelSerializer):
+    profile = WorkItemUserProfileSerializer()
     class Meta:
         model = User
         fields = ('id', 'username', 'email', 'first_name', 'last_name', 'profile')
 
-class ProjectSerializer(serializers.ModelSerializer):
+class WorkItemProjectSerializer(serializers.ModelSerializer):
     class Meta:
         model = Project
         fields = ['id', 'name',]
 
 class WorkItemsSerializer(serializers.ModelSerializer):
-    assigned_to = UserSerializer(many=True, read_only=True)
-    project = ProjectSerializer(read_only=True)
+    assigned_to = WorkItemUserSerializer(many=True, read_only=True)
+    project = WorkItemProjectSerializer(read_only=True)
 
     class Meta:
         model = WorkItems
