@@ -28,5 +28,5 @@ urlpatterns = [
     path('token/verify/', TokenVerifyView.as_view(), name='token_verify'),
 
     # user related to the requested user client
-    path('my-client-users/', auth_viewset.AuthViewSet.as_view({'get': 'my_client_users'}), name='my_client_users'),
+    path('my-client-users/', auth_viewset.ClientViewSet.as_view({'get': 'my_client_users'}), name='my_client_users'),
 ]
