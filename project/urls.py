@@ -4,8 +4,8 @@ from project.adapters.viewset.proejct_viewset import ProjectViewSet, OngoingProj
 
 
 router = DefaultRouter()
-router.register(r'projects', ProjectViewSet)
-router.register(r'ongoing-projects', OngoingProjectViewSet)
+router.register(r'projects', ProjectViewSet, basename='project')
+router.register(r'ongoing-projects', OngoingProjectViewSet, basename='ongoing-project')
 
 
 urlpatterns = [
