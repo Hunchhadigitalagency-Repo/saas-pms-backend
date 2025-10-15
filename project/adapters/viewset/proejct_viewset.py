@@ -25,3 +25,4 @@ class ProjectViewSet(viewsets.ModelViewSet):
 class OngoingProjectViewSet(viewsets.ModelViewSet):
     queryset = Project.objects.filter(status='active').order_by('-id')
     serializer_class = ProjectSerializer
+    pagination_class = None
