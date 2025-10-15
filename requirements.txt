@@ -8,6 +8,7 @@ cryptography==45.0.6
 daphne==4.2.1
 Django==5.2.5
 django-cors-headers==4.7.0
+django-filter==25.2
 django-tenants==3.8.0
 djangorestframework==3.16.1
 djangorestframework_simplejwt==5.5.1
