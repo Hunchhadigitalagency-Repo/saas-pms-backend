@@ -1,7 +1,7 @@
 from rest_framework import viewsets, filters
 from django_filters.rest_framework import DjangoFilterBackend
 from project.models import Project
-from project.adapters.serializers.project_serializer import ProjectSerializer
+from project.adapters.serializers.project_serializer import ProjectSerializer, OnGoingProjectSerializer
 from utils.custom_paginator import CustomPaginator
 
 
@@ -24,5 +24,5 @@ class ProjectViewSet(viewsets.ModelViewSet):
 
 class OngoingProjectViewSet(viewsets.ModelViewSet):
     queryset = Project.objects.filter(status='active').order_by('-id')
-    serializer_class = ProjectSerializer
+    serializer_class = OnGoingProjectSerializer
     pagination_class = None
