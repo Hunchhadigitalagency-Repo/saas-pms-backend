@@ -22,7 +22,6 @@ class ProjectSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 class OnGoingProjectSerializer(serializers.ModelSerializer):
-    team_members = ProjectMemberSerializer(source='projectmembers_set', many=True, read_only=True)
 
     class Meta:
         model = Project
