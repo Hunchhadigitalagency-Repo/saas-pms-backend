@@ -1,7 +1,7 @@
 from rest_framework import viewsets, filters
 from django_filters.rest_framework import DjangoFilterBackend
 from project.models import Project
-from project.adapters.serializers.project_serializer import ProjectSerializer, OnGoingProjectSerializer
+from project.adapters.serializers.project_serializer import ProjectSerializer, OnGoingProjectSerializer, ProjectWriteSerializer
 from utils.custom_paginator import CustomPaginator
 
 
@@ -21,6 +21,11 @@ class ProjectViewSet(viewsets.ModelViewSet):
 
     # optional ordering fields
     ordering_fields = ['due_date', 'created_at', 'priority']
+
+    def get_serializer_class(self):
+        if self.action in ['create', 'update', 'partial_update']:
+            return ProjectWriteSerializer
+        return ProjectSerializer
 
 class OngoingProjectViewSet(viewsets.ModelViewSet):
     queryset = Project.objects.filter(status='active').order_by('-id')

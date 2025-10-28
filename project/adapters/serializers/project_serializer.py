@@ -21,6 +21,42 @@ class ProjectSerializer(serializers.ModelSerializer):
         model = Project
         fields = '__all__'
 
+class ProjectWriteSerializer(serializers.ModelSerializer):
+    team_members = serializers.PrimaryKeyRelatedField(
+        many=True,
+        queryset=User.objects.all(),
+        required=False
+    )
+
+    class Meta:
+        model = Project
+        fields = (
+            'name',
+            'description',
+            'due_date',
+            'status',
+            'priority',
+            'meeting_link',
+            'team_members',
+        )
+
+    def create(self, validated_data):
+        team_members_data = validated_data.pop('team_members', [])
+        project = Project.objects.create(**validated_data)
+        for member in team_members_data:
+            ProjectMembers.objects.create(project=project, user=member)
+        return project
+
+    def update(self, instance, validated_data):
+        team_members_data = validated_data.pop('team_members', None)
+        instance = super().update(instance, validated_data)
+
+        if team_members_data is not None:
+            instance.projectmembers_set.all().delete()
+            for member in team_members_data:
+                ProjectMembers.objects.create(project=instance, user=member)
+        return instance
+
 class OnGoingProjectSerializer(serializers.ModelSerializer):
 
     class Meta:
