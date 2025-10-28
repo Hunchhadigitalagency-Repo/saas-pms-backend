@@ -2,10 +2,17 @@ from rest_framework import serializers
 from project.models import Project, ProjectMembers
 from django.contrib.auth.models import User
 
+class ProjectUserProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = UserProfile
+        fields = ('profile_picture',)
+
 class ProjectMemberUserSerializer(serializers.ModelSerializer):
+    profile = ProjectUserProfileSerializer()
+    
     class Meta:
         model = User
-        fields = ('id', 'username', 'email', 'first_name', 'last_name')
+        fields = ('id', 'username', 'email', 'first_name', 'last_name', 'profile')
 
 class ProjectMemberSerializer(serializers.ModelSerializer):
     user = ProjectMemberUserSerializer(read_only=True)
