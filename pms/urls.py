@@ -16,6 +16,8 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path,include
+from django.conf import settings
+from django.conf.urls.static import static
 from drf_spectacular.views import (
     SpectacularAPIView,
     SpectacularSwaggerView,
@@ -24,6 +26,7 @@ from drf_spectacular.views import (
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('summernote/', include('django_summernote.urls')),
 
     # API schema
     path("api/schema/", SpectacularAPIView.as_view(), name="schema"),
@@ -35,3 +38,6 @@ urlpatterns = [
     path("api/v1/", include("project.urls")),       # your project endpoints
     path("api/v1/", include("work_items.urls")),          # your work items endpoints
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

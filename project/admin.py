@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django_summernote.admin import SummernoteModelAdmin
 
 from project.models import Project, ProjectMembers
 
@@ -9,8 +10,9 @@ class ProjectMembersInline(admin.TabularInline):
     extra = 1
 
 @admin.register(Project)
-class ProjectAdmin(admin.ModelAdmin):
+class ProjectAdmin(SummernoteModelAdmin):
     list_display = ('name', 'priority', 'status', 'due_date', 'created_at', 'updated_at')
     search_fields = ('name', 'description')
     list_filter = ('priority', 'status')
     inlines = [ProjectMembersInline]
+    summernote_fields = ('description',)
