@@ -37,6 +37,8 @@ urlpatterns = [
     path("api/v1/", include("user.urls")),        # your user/auth endpoints
     path("api/v1/", include("project.urls")),       # your project endpoints
     path("api/v1/", include("work_items.urls")),          # your work items endpoints
+    path("api/v1/", include("dashboard.urls")),          # your work items endpoints
+
 ]
 
 if settings.DEBUG:
