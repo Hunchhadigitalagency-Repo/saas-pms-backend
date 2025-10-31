@@ -122,18 +122,16 @@ class DashboardViewset(viewsets.ViewSet):
         """
         from work_items.models import WorkItems, Status
         
-        # Current week overdue (not completed and due date passed)
+        # Current overdue (not completed and due date passed)
         current_count = WorkItems.objects.filter(
             ~Q(status=Status.COMPLETED),
-            due_date__lt=today,
-            due_date__gte=current_week_start
+            due_date__lt=today
         ).count()
         
-        # Last week overdue
+        # Overdue at the start of this week
         last_week_count = WorkItems.objects.filter(
             ~Q(status=Status.COMPLETED),
-            due_date__lt=last_week_end,
-            due_date__gte=last_week_start
+            due_date__lt=current_week_start
         ).count()
         
         # Calculate trend (for overdue, declining is good, so we invert the logic)
