@@ -1,6 +1,6 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
-from adapters.viewsets.dashbaord_viewset import DashboardViewset
+from .adapters.viewsets.dashbaord_viewset import DashboardViewset
 
 
 
