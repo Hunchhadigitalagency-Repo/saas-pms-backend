@@ -11,7 +11,8 @@ router = DefaultRouter()
 router.register(r'dashboard', DashboardViewset, basename='project')
 
 urlpatterns = [
-   path('dashboard/', include([
+    path('', include(router.urls)),
+    path('dashboard/', include([
         path('', include(router.urls)),
         path('work-item-status-distribution/', WorkItemStatusDistribution.as_view(), name='work-item-status-distribution'),
         path('work-item-priority-distribution/', WorkItemPriorityDistribution.as_view(), name='work-item-priority-distribution'),
