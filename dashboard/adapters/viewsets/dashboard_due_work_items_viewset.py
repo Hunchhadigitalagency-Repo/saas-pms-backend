@@ -1,4 +1,4 @@
-from backend.work_items.adapters.serializers.work_items_serializer import WorkItemsSerializer
+from work_items.adapters.serializers.work_items_serializer import WorkItemsSerializer
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.db.models import Q
