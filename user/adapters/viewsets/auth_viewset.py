@@ -85,14 +85,18 @@ class AuthViewSet(viewsets.ViewSet):
                 status=status.HTTP_404_NOT_FOUND,
             )
 
-        # Issue JWT token
+        # Generate JWT tokens
         refresh = RefreshToken.for_user(user)
+        access_token = str(refresh.access_token)
+        refresh_token = str(refresh)
 
         # Include user profile if exists
         profile = UserProfile.objects.filter(user=user).first()
 
+        # Prepare response data (NO TOKENS IN BODY - they'll be in cookies)
         response_data = {
             "user": {
+                "id": user.id,
                 "email": user.email,
                 "first_name": user.first_name,
                 "last_name": user.last_name,
@@ -109,13 +113,36 @@ class AuthViewSet(viewsets.ViewSet):
                 "is_primary": domain.is_primary,
             },
             "user_role": user_role,
-            "tokens": {
-                "refresh": str(refresh),
-                "access": str(refresh.access_token),
-            },
+            # NOTE: Tokens are NOT returned in response body
+            # They are set as HttpOnly cookies by the response object below
         }
 
-        return Response(response_data, status=status.HTTP_200_OK)
+        # Create response
+        response = Response(response_data, status=status.HTTP_200_OK)
+
+        # Set tokens as HttpOnly cookies (more secure than localStorage)
+        # These cookies cannot be accessed by JavaScript (prevents XSS theft)
+        response.set_cookie(
+            key='access_token',
+            value=access_token,
+            max_age=36000,  # 10 hours (match SIMPLE_JWT ACCESS_TOKEN_LIFETIME)
+            secure=True,  # Only send over HTTPS
+            httponly=True,  # Not accessible from JavaScript
+            samesite='Lax',  # CSRF protection
+            path='/',
+        )
+
+        response.set_cookie(
+            key='refresh_token',
+            value=refresh_token,
+            max_age=604800,  # 7 days (match SIMPLE_JWT REFRESH_TOKEN_LIFETIME)
+            secure=True,
+            httponly=True,
+            samesite='Lax',
+            path='/',
+        )
+
+        return response
 
 
     def login_with_google(self, request, *args, **kwargs):
@@ -141,13 +168,20 @@ class AuthViewSet(viewsets.ViewSet):
         )(request, *args, **kwargs)
 
     def logout(self, request, *args, **kwargs):
-        try:
-            refresh_token = request.data.get("refresh")
-            token = RefreshToken(refresh_token)
-            token.blacklist()
-            return Response(status=status.HTTP_205_RESET_CONTENT)
-        except Exception as e:
-            return Response(data={"error": str(e)}, status=status.HTTP_400_BAD_REQUEST)
+        """
+        Logout user by clearing HttpOnly cookies.
+        No database blacklist needed since tokens are just deleted.
+        """
+        response = Response(
+            {"message": "Successfully logged out"},
+            status=status.HTTP_200_OK
+        )
+        
+        # Clear the authentication cookies
+        response.delete_cookie('access_token', path='/')
+        response.delete_cookie('refresh_token', path='/')
+        
+        return response
 
 class ClientViewSet(viewsets.ModelViewSet):
     permission_classes = [IsAuthenticated]

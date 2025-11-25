@@ -51,23 +51,43 @@ CORS_ALLOW_METHODS = (
     "PUT",
 )
 
-CORS_ALLOW_ALL_ORIGINS = True
+# Note: CORS_ALLOW_ALL_ORIGINS removed for security
+# Using specific CORS_ALLOWED_ORIGINS above instead
 
 CORS_ALLOWED_ORIGIN_REGEXES = [
     r"^https://.*\.pms\.hunchhadigital\.com\.np$",
 ]
 
 CSRF_COOKIE_SECURE = True
+CSRF_COOKIE_HTTPONLY = False  # CSRF token needs to be readable by JS
+CSRF_COOKIE_SAMESITE = 'Lax'
 
+# Session cookie configuration
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_SECURE = True
+SESSION_COOKIE_SAMESITE = 'Lax'
+
+# Allow credentials in CORS requests
+CORS_ALLOW_CREDENTIALS = True
+
+# JWT configuration with HttpOnly cookies
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(hours=10),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+    "AUTH_COOKIE": "access_token",
+    "AUTH_COOKIE_SECURE": True,
+    "AUTH_COOKIE_HTTPONLY": True,
+    "AUTH_COOKIE_SAMESITE": "Lax",
+    "AUTH_REFRESH_COOKIE": "refresh_token",
+    "AUTH_REFRESH_COOKIE_SECURE": True,
+    "AUTH_REFRESH_COOKIE_HTTPONLY": True,
+    "AUTH_REFRESH_COOKIE_SAMESITE": "Lax",
 }
 
 REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'pms.jwt_auth.CookieJWTAuthentication',  # Use custom cookie-based JWT auth
     ),
     'DEFAULT_PAGINATION_CLASS': 'utils.custom_paginator.CustomPaginator',
     'PAGE_SIZE': 10
