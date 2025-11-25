@@ -194,6 +194,22 @@ class ClientViewSet(viewsets.ModelViewSet):
         }
     )
     def my_client_users(self, request, *args, **kwargs):
+        # Ensure the user is authenticated. If authentication middleware didn't pick up
+        # the cookie-based JWT (edge cases), try to manually authenticate from cookies.
+        if request.user.is_anonymous:
+            try:
+                from rest_framework_simplejwt.authentication import JWTAuthentication
+                jwt_auth = JWTAuthentication()
+                access_token = request.COOKIES.get('access_token')
+                if access_token:
+                    validated_token = jwt_auth.get_validated_token(access_token)
+                    user = jwt_auth.get_user(validated_token)
+                    request.user = user
+            except Exception as e:
+                # If manual authentication fails, return 401
+                print(f"Manual cookie JWT authentication failed: {e}")
+                return Response({"detail": "Authentication credentials were not provided."}, status=status.HTTP_401_UNAUTHORIZED)
+
         user = request.user
         user_active_client = ActiveClient.objects.filter(user=user).first()
         if not user_active_client:
