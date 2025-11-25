@@ -130,6 +130,7 @@ class AuthViewSet(viewsets.ViewSet):
             httponly=True,  # Not accessible from JavaScript
             samesite='Lax',  # CSRF protection
             path='/',
+            domain='.pms.hunchhadigital.com.np',  # Allow across subdomains
         )
 
         response.set_cookie(
@@ -140,6 +141,7 @@ class AuthViewSet(viewsets.ViewSet):
             httponly=True,
             samesite='Lax',
             path='/',
+            domain='.pms.hunchhadigital.com.np',  # Allow across subdomains
         )
 
         return response
@@ -177,14 +179,14 @@ class AuthViewSet(viewsets.ViewSet):
             status=status.HTTP_200_OK
         )
         
-        # Clear the authentication cookies
-        response.delete_cookie('access_token', path='/')
-        response.delete_cookie('refresh_token', path='/')
+        # Clear the authentication cookies (with matching domain)
+        response.delete_cookie('access_token', path='/', domain='.pms.hunchhadigital.com.np')
+        response.delete_cookie('refresh_token', path='/', domain='.pms.hunchhadigital.com.np')
         
         return response
 
 class ClientViewSet(viewsets.ModelViewSet):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [AllowAny]  # Allow anonymous initially, authenticate inside the view
 
     @extend_schema(
         summary="Get users associated with the authenticated user's active client",
@@ -194,29 +196,62 @@ class ClientViewSet(viewsets.ModelViewSet):
         }
     )
     def my_client_users(self, request, *args, **kwargs):
-        # Ensure the user is authenticated. If authentication middleware didn't pick up
-        # the cookie-based JWT (edge cases), try to manually authenticate from cookies.
-        if request.user.is_anonymous:
-            try:
-                from rest_framework_simplejwt.authentication import JWTAuthentication
-                jwt_auth = JWTAuthentication()
-                access_token = request.COOKIES.get('access_token')
-                if access_token:
-                    validated_token = jwt_auth.get_validated_token(access_token)
-                    user = jwt_auth.get_user(validated_token)
-                    request.user = user
-            except Exception as e:
-                # If manual authentication fails, return 401
-                print(f"Manual cookie JWT authentication failed: {e}")
-                return Response({"detail": "Authentication credentials were not provided."}, status=status.HTTP_401_UNAUTHORIZED)
-
+        """
+        Authenticate user from cookie JWT and return users in their active client.
+        If not authenticated, tries to manually extract and validate token from cookie.
+        """
         user = request.user
-        user_active_client = ActiveClient.objects.filter(user=user).first()
-        if not user_active_client:
-            return Response({"error": "No active client found for this user"}, status=status.HTTP_404_NOT_FOUND)
+        
+        # If user is not authenticated, try to manually authenticate from cookie
+        if user.is_anonymous:
+            try:
+                from pms.jwt_auth import CookieJWTAuthentication
+                auth = CookieJWTAuthentication()
+                result = auth.authenticate(request)
+                
+                if result is not None:
+                    user, validated_token = result
+                    request.user = user
+                    print(f"Successfully authenticated user {user.id} from cookie")
+                else:
+                    print("No authentication result from cookie JWT auth")
+                    return Response(
+                        {"detail": "Authentication credentials were not provided."},
+                        status=status.HTTP_401_UNAUTHORIZED
+                    )
+            except Exception as e:
+                print(f"Failed to authenticate from cookie: {type(e).__name__}: {e}")
+                return Response(
+                    {"detail": "Authentication credentials were not provided."},
+                    status=status.HTTP_401_UNAUTHORIZED
+                )
+        
+        # After authentication, check if user is still anonymous
+        if user.is_anonymous:
+            return Response(
+                {"detail": "Authentication credentials were not provided."},
+                status=status.HTTP_401_UNAUTHORIZED
+            )
+        
+        # Get user's active client and associated users
+        try:
+            user_active_client = ActiveClient.objects.filter(user=user).first()
+            if not user_active_client:
+                return Response(
+                    {"error": "No active client found for this user"},
+                    status=status.HTTP_404_NOT_FOUND
+                )
 
-        users_in_this_client = UserClientRole.objects.filter(client=user_active_client.client).select_related('user')
-        client_users = [user_role.user for user_role in users_in_this_client]
+            users_in_this_client = UserClientRole.objects.filter(
+                client=user_active_client.client
+            ).select_related('user')
+            client_users = [user_role.user for user_role in users_in_this_client]
 
-        serializer = UserSerializer(client_users, many=True)
-        return Response(serializer.data)
+            serializer = UserSerializer(client_users, many=True)
+            return Response(serializer.data)
+        except Exception as e:
+            print(f"Error fetching client users: {type(e).__name__}: {e}")
+            return Response(
+                {"error": "Failed to fetch client users"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )

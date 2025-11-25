@@ -70,6 +70,13 @@ SESSION_COOKIE_SAMESITE = 'Lax'
 # Allow credentials in CORS requests
 CORS_ALLOW_CREDENTIALS = True
 
+# Ensure cookies are sent with CORS requests across subdomains
+CORS_EXPOSE_HEADERS = ['Content-Type']
+
+# Cookie settings to work across subdomains
+SESSION_COOKIE_DOMAIN = '.pms.hunchhadigital.com.np'
+CSRF_COOKIE_DOMAIN = '.pms.hunchhadigital.com.np'
+
 # JWT configuration with HttpOnly cookies
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(hours=10),
@@ -154,6 +161,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'pms.middleware.DebugAuthenticationMiddleware',  # Debug logging
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
