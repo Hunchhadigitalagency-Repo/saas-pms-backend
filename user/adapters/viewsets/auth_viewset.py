@@ -126,9 +126,9 @@ class AuthViewSet(viewsets.ViewSet):
             key='access_token',
             value=access_token,
             max_age=36000,  # 10 hours (match SIMPLE_JWT ACCESS_TOKEN_LIFETIME)
-            secure=True,  # Only send over HTTPS
+            secure=False,  # Only send over HTTPS
             httponly=True,  # Not accessible from JavaScript
-            samesite='Lax',  # CSRF protection
+            samesite='None',  # CSRF protection
             path='/',
             domain='.pms.hunchhadigital.com.np',  # Allow across subdomains
         )
@@ -137,9 +137,9 @@ class AuthViewSet(viewsets.ViewSet):
             key='refresh_token',
             value=refresh_token,
             max_age=604800,  # 7 days (match SIMPLE_JWT REFRESH_TOKEN_LIFETIME)
-            secure=True,
+            secure=False,
             httponly=True,
-            samesite='Lax',
+            samesite='None',
             path='/',
             domain='.pms.hunchhadigital.com.np',  # Allow across subdomains
         )
