@@ -11,7 +11,7 @@ from drf_spectacular.utils import extend_schema
 from django.contrib.auth.models import User
 from customer.models import ActiveClient, Client, Domain, UserClientRole
 from ...models import UserProfile
-
+from ...pms.jwt_auth import CookieJWTAuthentication
 
 
 class AuthViewSet(viewsets.ViewSet):
@@ -223,7 +223,6 @@ class ClientViewSet(viewsets.ModelViewSet):
         # If user is not authenticated, try to manually authenticate from cookie
         if user.is_anonymous:
             try:
-                from pms.jwt_auth import CookieJWTAuthentication
                 auth = CookieJWTAuthentication()
                 result = auth.authenticate(request)
                 
