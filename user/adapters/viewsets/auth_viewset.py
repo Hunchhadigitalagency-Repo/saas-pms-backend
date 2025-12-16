@@ -11,7 +11,7 @@ from drf_spectacular.utils import extend_schema
 from django.contrib.auth.models import User
 from customer.models import ActiveClient, Client, Domain, UserClientRole
 from ...models import UserProfile
-from ...pms.jwt_auth import CookieJWTAuthentication
+from pms.jwt_auth import CookieJWTAuthentication
 
 
 class AuthViewSet(viewsets.ViewSet):
@@ -219,7 +219,6 @@ class ClientViewSet(viewsets.ModelViewSet):
         If not authenticated, tries to manually extract and validate token from cookie.
         """
         user = request.user
-        
         # If user is not authenticated, try to manually authenticate from cookie
         if user.is_anonymous:
             try:
@@ -258,12 +257,10 @@ class ClientViewSet(viewsets.ModelViewSet):
                     {"error": "No active client found for this user"},
                     status=status.HTTP_404_NOT_FOUND
                 )
-
             users_in_this_client = UserClientRole.objects.filter(
                 client=user_active_client.client
             ).select_related('user')
             client_users = [user_role.user for user_role in users_in_this_client]
-
             serializer = UserSerializer(client_users, many=True)
             return Response(serializer.data)
         except Exception as e:
