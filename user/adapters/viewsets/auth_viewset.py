@@ -117,6 +117,7 @@ class AuthViewSet(viewsets.ViewSet):
             # They are set as HttpOnly cookies by the response object below
         }
 
+        
         # Create response
         response = Response(response_data, status=status.HTTP_200_OK)
 
@@ -126,22 +127,22 @@ class AuthViewSet(viewsets.ViewSet):
             key='access_token',
             value=access_token,
             max_age=36000,  # 10 hours (match SIMPLE_JWT ACCESS_TOKEN_LIFETIME)
-            secure=False,  # Only send over HTTPS
+            secure=True,
             httponly=True,  # Not accessible from JavaScript
-            samesite='None',  # CSRF protection
+            samesite='None',
             path='/',
-            domain='.pms.hunchhadigital.com.np',  # Allow across subdomains
+            domain=None,
         )
 
         response.set_cookie(
             key='refresh_token',
             value=refresh_token,
             max_age=604800,  # 7 days (match SIMPLE_JWT REFRESH_TOKEN_LIFETIME)
-            secure=False,
+            secure=True,
             httponly=True,
             samesite='None',
             path='/',
-            domain='.pms.hunchhadigital.com.np',  # Allow across subdomains
+            domain=None,
         )
 
         return response
@@ -174,14 +175,31 @@ class AuthViewSet(viewsets.ViewSet):
         Logout user by clearing HttpOnly cookies.
         No database blacklist needed since tokens are just deleted.
         """
+        # Detect environment based on request origin (same logic as login)
+        origin = request.META.get('HTTP_ORIGIN', '')
+        is_localhost = 'localhost' in origin or '127.0.0.1' in origin
+        
+        # Use same domain as login
+        cookie_domain = None if is_localhost else '.pms.hunchhadigital.com.np'
+        
         response = Response(
             {"message": "Successfully logged out"},
             status=status.HTTP_200_OK
         )
         
-        # Clear the authentication cookies (with matching domain)
-        response.delete_cookie('access_token', path='/', domain='.pms.hunchhadigital.com.np')
-        response.delete_cookie('refresh_token', path='/', domain='.pms.hunchhadigital.com.np')
+        # Clear the authentication cookies (with matching domain and samesite)
+        response.delete_cookie(
+            'access_token',
+            path='/',
+            domain=cookie_domain,
+            samesite='Lax' if is_localhost else 'None'
+        )
+        response.delete_cookie(
+            'refresh_token',
+            path='/',
+            domain=cookie_domain,
+            samesite='Lax' if is_localhost else 'None'
+        )
         
         return response
 
