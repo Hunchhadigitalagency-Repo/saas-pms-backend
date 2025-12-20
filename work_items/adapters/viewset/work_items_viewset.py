@@ -1,5 +1,6 @@
 from drf_spectacular.utils import extend_schema
-from rest_framework import viewsets, filters
+from rest_framework import viewsets, filters, status
+from rest_framework.response import Response
 from utils.custom_paginator import CustomPaginator
 from django.http import HttpResponse, JsonResponse
 from ...models import WorkItems
@@ -36,4 +37,25 @@ class WorkItemsViewset(viewsets.ModelViewSet):
         responses={201: WorkItemsSerializer}
     )
     def create(self, request, *args, **kwargs):
-        return super().create(request, *args, **kwargs)
+        # Use write serializer for validation and saving
+        write_serializer = self.get_serializer(data=request.data)
+        write_serializer.is_valid(raise_exception=True)
+        instance = write_serializer.save()
+        
+        # Use read serializer for response to include all fields
+        read_serializer = WorkItemsSerializer(instance)
+        headers = self.get_success_headers(read_serializer.data)
+        return Response(read_serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+
+    def update(self, request, *args, **kwargs):
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        
+        # Use write serializer for validation and saving
+        write_serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        write_serializer.is_valid(raise_exception=True)
+        instance = write_serializer.save()
+        
+        # Use read serializer for response to include all fields
+        read_serializer = WorkItemsSerializer(instance)
+        return Response(read_serializer.data)
