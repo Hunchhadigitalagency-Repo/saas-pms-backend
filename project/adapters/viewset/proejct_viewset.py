@@ -1,4 +1,4 @@
-from backend.project.permission import ProjectAccessPermission
+from project.permission import ProjectAccessPermission
 from customer.models import ActiveClient, UserClientRole
 from rest_framework import viewsets, filters
 from rest_framework.response import Response
