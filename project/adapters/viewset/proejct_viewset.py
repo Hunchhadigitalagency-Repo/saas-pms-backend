@@ -19,16 +19,9 @@ class ProjectViewSet(viewsets.ModelViewSet):
     - object-level permissions via ProjectAccessPermission
     - read/write serializer switching
     """
-
     serializer_class = ProjectSerializer
     pagination_class = CustomPaginator
-
-    # If you already set DEFAULT_AUTHENTICATION_CLASSES globally, this is optional.
-    authentication_classes = [CookieJWTAuthentication]
-
-    # Keep IsAuthenticated + your object permission
     permission_classes = [IsAuthenticated, ProjectAccessPermission]
-
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ["status", "priority"]
     search_fields = ["name", "description"]
@@ -52,10 +45,6 @@ class ProjectViewSet(viewsets.ModelViewSet):
             return Project.objects.none()
 
         qs = Project.objects.all()
-
-        # If you are NOT using django-tenants schema isolation, add a client FK on Project
-        # and enable this line:
-        # qs = qs.filter(client=active.client)
 
         if role in ("member", "viewer"):
             qs = qs.filter(projectmembers__user=user)
