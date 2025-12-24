@@ -53,7 +53,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
         # Performance (optional but recommended if you return team_members frequently)
         qs = qs.prefetch_related(
             "projectmembers_set__user",
-            "projectmembers_set__user__userprofile",  # adjust if your related_name differs
+            "projectmembers_set__user__profile",  # adjust if your related_name differs
         )
 
         return qs.distinct().order_by("-id")
