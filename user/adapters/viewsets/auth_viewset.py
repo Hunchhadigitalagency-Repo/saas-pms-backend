@@ -121,6 +121,10 @@ class AuthViewSet(viewsets.ViewSet):
         # Create response
         response = Response(response_data, status=status.HTTP_200_OK)
 
+        # Determine cookie domain based on environment
+        COOKIE_DOMAIN = ".pms.hunchhadigital.com.np"
+
+
         # Set tokens as HttpOnly cookies (more secure than localStorage)
         # These cookies cannot be accessed by JavaScript (prevents XSS theft)
         response.set_cookie(
@@ -131,7 +135,7 @@ class AuthViewSet(viewsets.ViewSet):
             httponly=True,  # Not accessible from JavaScript
             samesite='None',
             path='/',
-            domain=None,
+            domain=COOKIE_DOMAIN,
         )
 
         response.set_cookie(
@@ -142,7 +146,7 @@ class AuthViewSet(viewsets.ViewSet):
             httponly=True,
             samesite='None',
             path='/',
-            domain=None,
+            domain=COOKIE_DOMAIN,
         )
 
         return response
