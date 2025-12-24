@@ -127,7 +127,7 @@ class AuthViewSet(viewsets.ViewSet):
             key='access_token',
             value=access_token,
             max_age=36000,  # 10 hours (match SIMPLE_JWT ACCESS_TOKEN_LIFETIME)
-            secure=True,
+            secure=False,
             httponly=True,  # Not accessible from JavaScript
             samesite='None',
             path='/',
@@ -138,7 +138,7 @@ class AuthViewSet(viewsets.ViewSet):
             key='refresh_token',
             value=refresh_token,
             max_age=604800,  # 7 days (match SIMPLE_JWT REFRESH_TOKEN_LIFETIME)
-            secure=True,
+            secure=False,
             httponly=True,
             samesite='None',
             path='/',
