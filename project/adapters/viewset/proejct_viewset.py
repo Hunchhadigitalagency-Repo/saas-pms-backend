@@ -1,3 +1,5 @@
+from backend.project.permission import ProjectAccessPermission
+from customer.models import ActiveClient, UserClientRole
 from rest_framework import viewsets, filters
 from rest_framework.response import Response
 from rest_framework import status
@@ -5,27 +7,69 @@ from django_filters.rest_framework import DjangoFilterBackend
 from project.models import Project
 from project.adapters.serializers.project_serializer import ProjectSerializer, OnGoingProjectSerializer, ProjectWriteSerializer
 from utils.custom_paginator import CustomPaginator
-
+from rest_framework.permissions import IsAuthenticated
+from pms.jwt_auth import CookieJWTAuthentication
 
 class ProjectViewSet(viewsets.ModelViewSet):
-    queryset = Project.objects.all().order_by('-id')
+    """
+    Projects API with:
+    - cookie JWT auth
+    - list filtering/search/ordering
+    - role-based scoping in get_queryset()
+    - object-level permissions via ProjectAccessPermission
+    - read/write serializer switching
+    """
+
     serializer_class = ProjectSerializer
     pagination_class = CustomPaginator
 
-    # 👇 Add this
+    # If you already set DEFAULT_AUTHENTICATION_CLASSES globally, this is optional.
+    authentication_classes = [CookieJWTAuthentication]
+
+    # Keep IsAuthenticated + your object permission
+    permission_classes = [IsAuthenticated, ProjectAccessPermission]
+
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
+    filterset_fields = ["status", "priority"]
+    search_fields = ["name", "description"]
+    ordering_fields = ["due_date", "created_at", "priority"]
 
-    # fields you can filter by (exact match)
-    filterset_fields = ['status', 'priority']
+    def get_queryset(self):
+        user = self.request.user
 
-    # fields you can search by (partial match)
-    search_fields = ['name', 'description']
+        active = ActiveClient.objects.select_related("client").filter(user=user).first()
+        if not active:
+            return Project.objects.none()
 
-    # optional ordering fields
-    ordering_fields = ['due_date', 'created_at', 'priority']
+        role = (
+            UserClientRole.objects.filter(user=user, client=active.client)
+            .values_list("role", flat=True)
+            .first()
+        )
+
+        # No role => no access
+        if not role:
+            return Project.objects.none()
+
+        qs = Project.objects.all()
+
+        # If you are NOT using django-tenants schema isolation, add a client FK on Project
+        # and enable this line:
+        # qs = qs.filter(client=active.client)
+
+        if role in ("member", "viewer"):
+            qs = qs.filter(projectmembers__user=user)
+
+        # Performance (optional but recommended if you return team_members frequently)
+        qs = qs.prefetch_related(
+            "projectmembers_set__user",
+            "projectmembers_set__user__userprofile",  # adjust if your related_name differs
+        )
+
+        return qs.distinct().order_by("-id")
 
     def get_serializer_class(self):
-        if self.action in ['create', 'update', 'partial_update']:
+        if self.action in ("create", "update", "partial_update"):
             return ProjectWriteSerializer
         return ProjectSerializer
 

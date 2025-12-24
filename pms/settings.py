@@ -92,10 +92,13 @@ SIMPLE_JWT = {
 }
 
 REST_FRAMEWORK = {
-    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'pms.jwt_auth.CookieJWTAuthentication',  # Use custom cookie-based JWT auth
     ),
+    "DEFAULT_PERMISSION_CLASSES": (
+        "rest_framework.permissions.IsAuthenticated",
+    ),
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     'DEFAULT_PAGINATION_CLASS': 'utils.custom_paginator.CustomPaginator',
     'PAGE_SIZE': 10
 }
