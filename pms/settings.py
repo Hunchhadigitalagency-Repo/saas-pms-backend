@@ -71,7 +71,14 @@ SESSION_COOKIE_SAMESITE = 'Lax'
 CORS_ALLOW_CREDENTIALS = True
 
 # Ensure cookies are sent with CORS requests across subdomains
-CORS_EXPOSE_HEADERS = ['Content-Type']
+CORS_ALLOW_HEADERS = [
+    "accept",
+    "authorization",
+    "content-type",
+    "user-agent",
+    "x-csrftoken",
+    "x-requested-with",
+]
 
 # Cookie settings to work across subdomains
 SESSION_COOKIE_DOMAIN = '.pms.hunchhadigital.com.np'
