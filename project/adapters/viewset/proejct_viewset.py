@@ -26,6 +26,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
     filterset_fields = ["status", "priority"]
     search_fields = ["name", "description"]
     ordering_fields = ["due_date", "created_at", "priority"]
+    authentication_classes = [CookieJWTAuthentication]
 
     def get_queryset(self):
         user = self.request.user
