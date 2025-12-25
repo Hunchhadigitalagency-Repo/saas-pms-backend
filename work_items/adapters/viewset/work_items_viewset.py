@@ -16,6 +16,8 @@ class WorkItemsViewset(viewsets.ModelViewSet):
 
     Member/viewer roles only see work items belonging to projects they're assigned to.
     """
+    # Keep a class-level queryset so DRF's router can infer a basename when registering
+    queryset = WorkItems.objects.all().order_by('id')
     serializer_class = WorkItemsSerializer
     permission_classes = [IsAuthenticated, ProjectAccessPermission]
     authentication_classes = [CookieJWTAuthentication]
