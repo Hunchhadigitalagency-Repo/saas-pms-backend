@@ -132,6 +132,13 @@ class OngoingProjectViewSet(viewsets.ModelViewSet):
     
 class ProjectActivityLogViewSet(viewsets.ModelViewSet):
     """
+    Project Activity Log API 
+    """
+    @action(detail=False, methods=['get'], url_path='by-project/(?P<project_id>[^/.]+)')
+    def get_activity_by_proejct_id(self, project_id):
+        return ProjectActivityLog.objects.filter(project__id=project_id).order_by('-created_at')   
+
+    """
     Webhook endpoint for GitHub push events.
     POST endpoint: /api/v1/project-activity-logs/{id}/post-push-event
     """
@@ -148,8 +155,6 @@ class ProjectActivityLogViewSet(viewsets.ModelViewSet):
         try:
             # Get the JSON payload from GitHub webhook
             payload = request.data if isinstance(request.data, dict) else json.loads(request.body.decode('utf-8'))
-            
-            logger.info(f"GitHub webhook received for project {pk}")
             
             # Get the project
             try:
