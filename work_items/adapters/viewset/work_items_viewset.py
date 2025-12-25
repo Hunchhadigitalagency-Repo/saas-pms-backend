@@ -1,5 +1,9 @@
 from drf_spectacular.utils import extend_schema
 from rest_framework import viewsets, filters, status
+from rest_framework.permissions import IsAuthenticated
+from project.permission import ProjectAccessPermission
+from customer.models import ActiveClient, UserClientRole
+from pms.jwt_auth import CookieJWTAuthentication
 from rest_framework.response import Response
 from utils.custom_paginator import CustomPaginator
 from django.http import HttpResponse, JsonResponse
@@ -8,8 +12,13 @@ from ..serializers.work_items_serializer import WorkItemsSerializer, WorkItemsWr
 from django_filters.rest_framework import DjangoFilterBackend
 
 class WorkItemsViewset(viewsets.ModelViewSet):
-    queryset = WorkItems.objects.all().order_by('id')
+    """Work items API with role-based scoping.
+
+    Member/viewer roles only see work items belonging to projects they're assigned to.
+    """
     serializer_class = WorkItemsSerializer
+    permission_classes = [IsAuthenticated, ProjectAccessPermission]
+    authentication_classes = [CookieJWTAuthentication]
     pagination_class = CustomPaginator
 
     # 👇 Add filtering, searching and ordering
@@ -26,6 +35,32 @@ class WorkItemsViewset(viewsets.ModelViewSet):
 
     # Default ordering
     ordering = ['-created_at']
+
+    def get_queryset(self):
+        user = self.request.user
+
+        active = ActiveClient.objects.select_related("client").filter(user=user).first()
+        if not active:
+            return WorkItems.objects.none()
+
+        role = (
+            UserClientRole.objects.filter(user=user, client=active.client)
+            .values_list("role", flat=True)
+            .first()
+        )
+
+        if not role:
+            return WorkItems.objects.none()
+
+        qs = WorkItems.objects.all()
+
+        if role in ("member", "viewer"):
+            # Only include work items whose project the user is a member of
+            qs = qs.filter(project__projectmembers__user=user)
+
+        qs = qs.select_related("project", "assigned_to").prefetch_related("project__projectmembers__user")
+
+        return qs.distinct().order_by("-id")
 
     def get_serializer_class(self):
         if self.action in ['create', 'update', 'partial_update']:
