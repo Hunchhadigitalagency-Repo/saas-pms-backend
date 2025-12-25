@@ -88,6 +88,39 @@ class ProjectViewSet(viewsets.ModelViewSet):
         return Response(read_serializer.data)
 
 class OngoingProjectViewSet(viewsets.ModelViewSet):
-    queryset = Project.objects.filter(status='active').order_by('-id')
+    """
+    Ongoing projects (status='active') with role-based scoping.
+    Mirrors `ProjectViewSet` access rules so member/viewer roles only see assigned projects.
+    """
     serializer_class = OnGoingProjectSerializer
     pagination_class = None
+    permission_classes = [IsAuthenticated, ProjectAccessPermission]
+    authentication_classes = [CookieJWTAuthentication]
+
+    def get_queryset(self):
+        user = self.request.user
+
+        active = ActiveClient.objects.select_related("client").filter(user=user).first()
+        if not active:
+            return Project.objects.none()
+
+        role = (
+            UserClientRole.objects.filter(user=user, client=active.client)
+            .values_list("role", flat=True)
+            .first()
+        )
+
+        if not role:
+            return Project.objects.none()
+
+        qs = Project.objects.filter(status="active")
+
+        if role in ("member", "viewer"):
+            qs = qs.filter(projectmembers__user=user)
+
+        qs = qs.prefetch_related(
+            "projectmembers_set__user",
+            "projectmembers_set__user__profile",
+        )
+
+        return qs.distinct().order_by("-id")

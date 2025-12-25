@@ -67,7 +67,6 @@ class ProjectWriteSerializer(serializers.ModelSerializer):
         return instance
 
 class OnGoingProjectSerializer(serializers.ModelSerializer):
-
     class Meta:
         model = Project
         fields = ['id', 'name']
