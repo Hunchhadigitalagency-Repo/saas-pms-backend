@@ -60,7 +60,7 @@ class WorkItemsViewset(viewsets.ModelViewSet):
             # Only include work items whose project the user is a member of
             qs = qs.filter(project__projectmembers__user=user)
 
-        qs = qs.select_related("project", "assigned_to").prefetch_related("project__projectmembers__user")
+        qs = qs.select_related("project").prefetch_related("assigned_to", "project__projectmembers__user")
 
         return qs.distinct().order_by("-id")
 
