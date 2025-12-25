@@ -5,6 +5,8 @@ from rest_framework_simplejwt.views import (
     TokenRefreshView,
     TokenVerifyView
 )
+from .adapters.viewsets.auth_refresh import CookieTokenRefreshView
+
 
 urlpatterns = [
     # URL for logging in with email
@@ -21,6 +23,9 @@ urlpatterns = [
     path('change-password/', auth_viewset.AuthViewSet.as_view({'post': 'change_password'}), name='change_password'),
     # URL for logging out
     path('logout/', auth_viewset.AuthViewSet.as_view({'post': 'logout'}), name='logout'),
+
+    # URL for refreshing JWT tokens using cookies
+    path("auth/refresh/", CookieTokenRefreshView.as_view(), name="cookie_refresh"),
 
     # simple jwt verify and refresh api
     path('token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
