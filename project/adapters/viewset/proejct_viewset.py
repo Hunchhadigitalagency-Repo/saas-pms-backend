@@ -7,8 +7,13 @@ from django_filters.rest_framework import DjangoFilterBackend
 from project.models import Project
 from project.adapters.serializers.project_serializer import ProjectSerializer, OnGoingProjectSerializer, ProjectWriteSerializer
 from utils.custom_paginator import CustomPaginator
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
+from rest_framework.decorators import action
 from pms.jwt_auth import CookieJWTAuthentication
+import json
+import logging
+
+logger = logging.getLogger(__name__)
 
 class ProjectViewSet(viewsets.ModelViewSet):
     """
@@ -124,3 +129,58 @@ class OngoingProjectViewSet(viewsets.ModelViewSet):
         )
 
         return qs.distinct().order_by("-id")
+    
+class ProjectActivityLogViewSet(viewsets.ModelViewSet):
+    """
+    Webhook endpoint for GitHub push events.
+    POST endpoint: /api/v1/project-activity-logs/{id}/post-push-event
+    """
+    permission_classes = [AllowAny]  # Allow GitHub webhook without authentication
+    
+    @action(detail=True, methods=['post'], url_path='post-push-event')
+    def post_push_event(self, request, pk=None):
+        """
+        Handle GitHub push event webhooks.
+        
+        GitHub sends the payload in the request body as JSON.
+        Example URL: /api/v1/project-activity-logs/19/post-push-event
+        """
+        try:
+            # Get the JSON payload from GitHub webhook
+            payload = request.data if isinstance(request.data, dict) else json.loads(request.body.decode('utf-8'))
+            
+            logger.info(f"GitHub webhook received: {json.dumps(payload, indent=2)}")
+            
+            # Extract relevant information from the GitHub payload
+            # repository = payload.get('repository', {}).get('name', 'Unknown')
+            # branch = payload.get('ref', '').split('/')[-1]  # Extract branch name from refs/heads/branch
+            # pusher = payload.get('pusher', {}).get('name', 'Unknown')
+            # commit_count = len(payload.get('commits', []))
+            
+            # You can store this in a database model if you have one
+            # Example: ActivityLog.objects.create(
+            #     project_id=pk,
+            #     event_type='push',
+            #     repository=repository,
+            #     branch=branch,
+            #     pusher=pusher,
+            #     commit_count=commit_count,
+            #     raw_payload=payload
+            # )
+            
+            return True
+
+
+            
+        except json.JSONDecodeError:
+            logger.error("Failed to parse webhook payload as JSON")
+            return Response({
+                'status': 'error',
+                'message': 'Invalid JSON payload'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        except Exception as e:
+            logger.error(f"Error processing webhook: {str(e)}")
+            return Response({
+                'status': 'error',
+                'message': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
