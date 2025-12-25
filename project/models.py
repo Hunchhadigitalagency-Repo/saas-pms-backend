@@ -44,3 +44,11 @@ class ProjectMembers(models.Model):
 
     class Meta:
         unique_together = ('project', 'user')
+
+class ProjectActivityLog(models.Model):
+    project = models.ForeignKey(Project, on_delete=models.CASCADE)
+    activity = models.JSONField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.activity} - {self.project.name}"

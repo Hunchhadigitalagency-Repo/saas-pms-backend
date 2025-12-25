@@ -1,10 +1,10 @@
 from project.permission import ProjectAccessPermission
 from customer.models import ActiveClient, UserClientRole
+from project.models import Project, ProjectActivityLog
 from rest_framework import viewsets, filters
 from rest_framework.response import Response
 from rest_framework import status
 from django_filters.rest_framework import DjangoFilterBackend
-from project.models import Project
 from project.adapters.serializers.project_serializer import ProjectSerializer, OnGoingProjectSerializer, ProjectWriteSerializer
 from utils.custom_paginator import CustomPaginator
 from rest_framework.permissions import IsAuthenticated, AllowAny
@@ -149,28 +149,50 @@ class ProjectActivityLogViewSet(viewsets.ModelViewSet):
             # Get the JSON payload from GitHub webhook
             payload = request.data if isinstance(request.data, dict) else json.loads(request.body.decode('utf-8'))
             
-            logger.info(f"GitHub webhook received: {json.dumps(payload, indent=2)}")
+            logger.info(f"GitHub webhook received for project {pk}")
             
-            # Extract relevant information from the GitHub payload
-            # repository = payload.get('repository', {}).get('name', 'Unknown')
-            # branch = payload.get('ref', '').split('/')[-1]  # Extract branch name from refs/heads/branch
-            # pusher = payload.get('pusher', {}).get('name', 'Unknown')
-            # commit_count = len(payload.get('commits', []))
+            # Get the project
+            try:
+                project = Project.objects.get(id=pk)
+            except Project.DoesNotExist:
+                return Response({
+                    'status': 'error',
+                    'message': f'Project with id {pk} not found'
+                }, status=status.HTTP_404_NOT_FOUND)
             
-            # You can store this in a database model if you have one
-            # Example: ActivityLog.objects.create(
-            #     project_id=pk,
-            #     event_type='push',
-            #     repository=repository,
-            #     branch=branch,
-            #     pusher=pusher,
-            #     commit_count=commit_count,
-            #     raw_payload=payload
-            # )
+            # Extract head_commit data from the payload
+            head_commit = payload.get('head_commit', {})
             
-            return True
-
-
+            if not head_commit:
+                return Response({
+                    'status': 'error',
+                    'message': 'No head_commit found in webhook payload'
+                }, status=status.HTTP_400_BAD_REQUEST)
+            
+            # Create activity log entry with head_commit data
+            activity_log = ProjectActivityLog.objects.create(
+                project=project,
+                activity={
+                    'event_type': 'github_push',
+                    'head_commit': head_commit,
+                    'repository': payload.get('repository', {}).get('name', 'Unknown'),
+                    'branch': payload.get('ref', '').split('/')[-1],
+                    'pusher': payload.get('pusher', {}).get('name', 'Unknown'),
+                }
+            )
+            
+            logger.info(f"Activity log created with id: {activity_log.id}")
+            
+            return Response({
+                'status': 'success',
+                'message': f'Webhook processed and stored for project {project.name}',
+                'data': {
+                    'activity_log_id': activity_log.id,
+                    'commit_id': head_commit.get('id'),
+                    'commit_message': head_commit.get('message'),
+                    'author': head_commit.get('author', {}).get('name'),
+                }
+            }, status=status.HTTP_201_CREATED)
             
         except json.JSONDecodeError:
             logger.error("Failed to parse webhook payload as JSON")
