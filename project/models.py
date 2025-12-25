@@ -34,7 +34,7 @@ class Project(models.Model):
 
 class ProjectMembers(models.Model):
     ROLE_CHOICES = [
-        ('admin', 'Admin'),
+        ('owner', 'Owner'),
         ('member', 'Members'),
         ('viewer', 'Viewer'),
     ]
