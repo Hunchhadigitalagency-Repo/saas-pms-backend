@@ -10,33 +10,21 @@ from django.http import HttpResponse, JsonResponse
 from ...models import WorkItems
 from ..serializers.work_items_serializer import WorkItemsSerializer, WorkItemsWriteSerializer
 from django_filters.rest_framework import DjangoFilterBackend
+from ...permission import WorkItemAccessPermission
+from django.db.models import Q
 
 class WorkItemsViewset(viewsets.ModelViewSet):
-    """Work items API with role-based scoping.
-
-    Member/viewer roles only see work items belonging to projects they're assigned to.
-    """
-    # Keep a class-level queryset so DRF's router can infer a basename when registering
-    queryset = WorkItems.objects.all().order_by('id')
+    queryset = WorkItems.objects.all().order_by("-id")
     serializer_class = WorkItemsSerializer
-    permission_classes = [IsAuthenticated, ProjectAccessPermission]
     authentication_classes = [CookieJWTAuthentication]
+    permission_classes = [IsAuthenticated, WorkItemAccessPermission]
     pagination_class = CustomPaginator
 
-    # 👇 Add filtering, searching and ordering
     filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
-
-    # Fields you can filter by (exact match)
-    filterset_fields = ['project', 'status', 'priority', 'assigned_to']
-
-    # Fields you can search by (partial match)
-    search_fields = ['title', 'description']
-
-    # Optional ordering fields
-    ordering_fields = ['due_date', 'created_at', 'updated_at', 'priority', 'title']
-
-    # Default ordering
-    ordering = ['-created_at']
+    filterset_fields = ["project", "status", "priority", "assigned_to"]
+    search_fields = ["title", "description"]
+    ordering_fields = ["due_date", "created_at", "updated_at", "priority", "title"]
+    ordering = ["-created_at"]
 
     def get_queryset(self):
         user = self.request.user
@@ -46,26 +34,32 @@ class WorkItemsViewset(viewsets.ModelViewSet):
             return WorkItems.objects.none()
 
         role = (
-            UserClientRole.objects.filter(user=user, client=active.client)
+            UserClientRole.objects
+            .filter(user=user, client=active.client)
             .values_list("role", flat=True)
             .first()
         )
-
         if not role:
             return WorkItems.objects.none()
 
         qs = WorkItems.objects.all()
 
         if role in ("member", "viewer"):
-            # Only include work items whose project the user is a member of
-            qs = qs.filter(project__projectmembers__user=user)
+            qs = qs.filter(
+                Q(project__projectmembers__user=user) | Q(assigned_to=user)
+            )
 
-        qs = qs.select_related("project").prefetch_related("assigned_to", "project__projectmembers__user")
+        # Performance: avoid N+1
+        qs = qs.select_related("project").prefetch_related(
+            "assigned_to",
+            "project__projectmembers_set__user",
+            "project__projectmembers_set__user__profile",
+        )
 
         return qs.distinct().order_by("-id")
 
     def get_serializer_class(self):
-        if self.action in ['create', 'update', 'partial_update']:
+        if self.action in ("create", "update", "partial_update"):
             return WorkItemsWriteSerializer
         return WorkItemsSerializer
 
