@@ -1,13 +1,11 @@
-from backend.work_items.models import WorkItems
 from project.permission import ProjectAccessPermission
 from customer.models import ActiveClient, UserClientRole
-from project.models import Project, ProjectActivityLog
+from project.models import Project
 from rest_framework import viewsets, filters
 from rest_framework.response import Response
 from rest_framework import status
 from django_filters.rest_framework import DjangoFilterBackend
 from project.adapters.serializers.project_serializer import ProjectSerializer, OnGoingProjectSerializer, ProjectWriteSerializer
-from project.adapters.serializers.project_activity_log_serializer import ProjectActivityLogSerializer
 from utils.custom_paginator import CustomPaginator
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.decorators import action
