@@ -29,17 +29,21 @@ ALLOWED_HOSTS = [
     "pms.hunchhadigital.com.np",
     ".pms.hunchhadigital.com.np",  # allows all subdomains
     "localhost",
+    "collabrix.hunchhadigital.com.np"
 ]
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
-    "https://pms.hunchhadigital.com.np"
+    "https://pms.hunchhadigital.com.np",
+    "https://collabrix.hunchhadigital.com.np/"
+    "https://*.pms.hunchhadigital.com.np",
 ]
 
 CSRF_TRUSTED_ORIGINS = [
     "https://pms.hunchhadigital.com.np",
     "https://*.pms.hunchhadigital.com.np",
     "http://localhost:5173",
+    "https://collabrix.hunchhadigital.com.np"
 ]
 
 CORS_ALLOW_METHODS = (
