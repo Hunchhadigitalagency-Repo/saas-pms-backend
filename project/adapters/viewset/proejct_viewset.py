@@ -216,13 +216,17 @@ class ProjectActivityLogViewSet(viewsets.ModelViewSet):
         authentication_classes=[]
     )
     def post_push_event(self, request, pk=None):
+        logger.info(f"🔵 Webhook received for project ID: {pk}")
         try:
             payload = request.data if isinstance(request.data, dict) else json.loads(request.body.decode())
+            logger.info(f"📦 Payload parsed successfully. Repository: {payload.get('repository', {}).get('name')}")
 
             # Get project
             try:
                 project = Project.objects.get(id=pk)
+                logger.info(f"✅ Project found: {project.name} (ID: {project.id})")
             except Project.DoesNotExist:
+                logger.error(f"❌ Project not found with ID: {pk}")
                 return Response(
                     {"status": "error", "message": "Project not found"},
                     status=status.HTTP_404_NOT_FOUND
@@ -230,38 +234,51 @@ class ProjectActivityLogViewSet(viewsets.ModelViewSet):
 
             branch = payload.get("ref", "").split("/")[-1]
             commits = payload.get("commits", [])
+            logger.info(f"🌿 Branch: {branch}, Total commits: {len(commits)}")
 
             if not commits:
+                logger.warning(f"⚠️ No commits in push for project {project.name}")
                 return Response(
                     {"status": "ignored", "message": "No commits in push"},
                     status=status.HTTP_200_OK
                 )
 
             updated_items = []
-            for commit in commits:
+            for idx, commit in enumerate(commits, 1):
                 message = commit.get("message", "")
                 commit_id = commit.get("id")
                 author = commit.get("author", {}).get("name")
+                logger.info(f"📝 Processing commit {idx}/{len(commits)}: {commit_id[:7]} by {author}")
+                logger.debug(f"   Message: {message}")
 
                 handled_ids = set()
 
                 # 1️⃣ Explicit per-task statuses (TASK-12:#done)
-                for task_id, keyword in EXPLICIT_TASK_STATUS_REGEX.findall(message):
+                explicit_matches = EXPLICIT_TASK_STATUS_REGEX.findall(message)
+                if explicit_matches:
+                    logger.info(f"   🔍 Found {len(explicit_matches)} explicit task status(es)")
+                
+                for task_id, keyword in explicit_matches:
                     task_id = int(task_id)
                     new_status = resolve_status(keyword)
+                    logger.debug(f"      Task {task_id}: keyword '{keyword}' -> status '{new_status}'")
 
                     if not new_status or not is_status_allowed(branch, new_status):
+                        logger.debug(f"      ⏭️ Task {task_id} skipped: status '{new_status}' not allowed for branch '{branch}'")
                         continue
 
                     try:
                         work_item = WorkItems.objects.get(id=task_id, project=project)
+                        logger.debug(f"      ✅ Work item {task_id} found")
                     except WorkItems.DoesNotExist:
+                        logger.warning(f"      ❌ Work item {task_id} not found in project {project.name}")
                         continue
 
                     if work_item.status != new_status:
                         old_status = work_item.status
                         work_item.status = new_status
                         work_item.save(update_fields=["status", "updated_at"])
+                        logger.info(f"      ✏️ Task {task_id} updated: {old_status} → {new_status}")
 
                         updated_items.append({
                             "work_item": work_item.id,
@@ -271,27 +288,36 @@ class ProjectActivityLogViewSet(viewsets.ModelViewSet):
                             "branch": branch,
                             "author": author,
                         })
+                    else:
+                        logger.debug(f"      ℹ️ Task {task_id} already has status '{new_status}'")
 
                     handled_ids.add(task_id)
 
                 # 2️⃣ Global status fallback (TASK-1 TASK-2 #done)
                 global_match = GLOBAL_STATUS_REGEX.search(message)
                 if global_match:
-                    global_status = resolve_status(global_match.group("status"))
+                    global_keyword = global_match.group("status")
+                    global_status = resolve_status(global_keyword)
+                    logger.info(f"   🌐 Found global status: '{global_keyword}' -> '{global_status}'")
 
                     if global_status and is_status_allowed(branch, global_status):
                         all_ids = {int(i) for i in TASK_ID_REGEX.findall(message)}
+                        unhandled_ids = all_ids - handled_ids
+                        logger.info(f"   🔢 Found {len(all_ids)} task ID(s), {len(unhandled_ids)} unhandled")
 
-                        for task_id in all_ids - handled_ids:
+                        for task_id in unhandled_ids:
                             try:
                                 work_item = WorkItems.objects.get(id=task_id, project=project)
+                                logger.debug(f"      ✅ Work item {task_id} found")
                             except WorkItems.DoesNotExist:
+                                logger.warning(f"      ❌ Work item {task_id} not found in project {project.name}")
                                 continue
 
                             if work_item.status != global_status:
                                 old_status = work_item.status
                                 work_item.status = global_status
                                 work_item.save(update_fields=["status", "updated_at"])
+                                logger.info(f"      ✏️ Task {task_id} updated (global): {old_status} → {global_status}")
 
                                 updated_items.append({
                                     "work_item": work_item.id,
@@ -301,6 +327,14 @@ class ProjectActivityLogViewSet(viewsets.ModelViewSet):
                                     "branch": branch,
                                     "author": author,
                                 })
+                            else:
+                                logger.debug(f"      ℹ️ Task {task_id} already has status '{global_status}'")
+                    else:
+                        logger.debug(f"      ⏭️ Global status '{global_status}' not allowed for branch '{branch}'")
+                else:
+                    logger.debug(f"   ℹ️ No global status found in commit message")
+
+            logger.info(f"📊 Total work items updated: {len(updated_items)}")
 
             # 3️⃣ Store activity log (unchanged behavior)
             activity_log = ProjectActivityLog.objects.create(
@@ -314,7 +348,9 @@ class ProjectActivityLogViewSet(viewsets.ModelViewSet):
                     "updated_work_items": updated_items,
                 }
             )
+            logger.info(f"💾 Activity log created (ID: {activity_log.id})")
 
+            logger.info(f"✅ Webhook processing completed successfully for project {project.name}")
             return Response(
                 {
                     "status": "success",
@@ -326,14 +362,15 @@ class ProjectActivityLogViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_200_OK
             )
 
-        except json.JSONDecodeError:
+        except json.JSONDecodeError as e:
+            logger.error(f"❌ JSON decode error: {str(e)}")
             return Response(
                 {"status": "error", "message": "Invalid JSON payload"},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
         except Exception as e:
-            logger.exception("Webhook processing failed")
+            logger.exception(f"❌ Webhook processing failed: {str(e)}")
             return Response(
                 {"status": "error", "message": str(e)},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
