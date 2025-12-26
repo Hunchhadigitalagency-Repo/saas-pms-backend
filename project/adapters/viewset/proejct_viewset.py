@@ -6,6 +6,7 @@ from rest_framework.response import Response
 from rest_framework import status
 from django_filters.rest_framework import DjangoFilterBackend
 from project.adapters.serializers.project_serializer import ProjectSerializer, OnGoingProjectSerializer, ProjectWriteSerializer
+from project.adapters.serializers.project_activity_log_serializer import ProjectActivityLogSerializer
 from utils.custom_paginator import CustomPaginator
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.decorators import action
@@ -133,18 +134,29 @@ class OngoingProjectViewSet(viewsets.ModelViewSet):
 class ProjectActivityLogViewSet(viewsets.ModelViewSet):
     """
     Project Activity Log API 
+    Supports:
+    - List all activity logs
+    - Retrieve activity logs by project ID via /by-project/{project_id}/
+    - GitHub webhook endpoint for push events
     """
-    @action(detail=False, methods=['get'], url_path='by-project/(?P<project_id>[^/.]+)')
-    def get_activity_by_proejct_id(self, project_id):
-        return ProjectActivityLog.objects.filter(project__id=project_id).order_by('-created_at')   
-
-    """
-    Webhook endpoint for GitHub push events.
-    POST endpoint: /api/v1/project-activity-logs/{id}/post-push-event
-    """
-    permission_classes = [AllowAny]  # Allow GitHub webhook without authentication
+    serializer_class = ProjectActivityLogSerializer
+    permission_classes = [IsAuthenticated]
+    authentication_classes = [CookieJWTAuthentication]
     
-    @action(detail=True, methods=['post'], url_path='post-push-event')
+    def get_queryset(self):
+        return ProjectActivityLog.objects.all().order_by('-created_at')
+    
+    @action(detail=False, methods=['get'], url_path='by-project/(?P<project_id>[^/.]+)')
+    def get_activity_by_project_id(self, request, project_id=None):
+        """
+        Get activity logs for a specific project.
+        URL: /api/v1/project-activity-logs/by-project/{project_id}/
+        """
+        queryset = ProjectActivityLog.objects.filter(project__id=project_id).order_by('-created_at')
+        serializer = self.get_serializer(queryset, many=True)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
+    @action(detail=True, methods=['post'], url_path='post-push-event', permission_classes=[AllowAny])
     def post_push_event(self, request, pk=None):
         """
         Handle GitHub push event webhooks.
