@@ -10,10 +10,6 @@ from utils.custom_paginator import CustomPaginator
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.decorators import action
 from pms.jwt_auth import CookieJWTAuthentication
-import json
-import logging
-
-logger = logging.getLogger(__name__)
 
 class ProjectViewSet(viewsets.ModelViewSet):
     """
