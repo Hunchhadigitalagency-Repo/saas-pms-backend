@@ -1,59 +1,55 @@
 name: Deploy to DigitalOcean Droplet
 
-
 on:
- push:
-   branches: [ main, develop ]
- pull_request:
-   branches: [ main ]
-
+  push:
+    branches: [main]
 
 jobs:
- deploy:
-   runs-on: ubuntu-latest
-  
-   steps:
-   - name: Checkout code
-     uses: actions/checkout@v4
-    
-   - name: Deploy to DigitalOcean Droplet
-     uses: appleboy/ssh-action@v1.0.3
-     with:
-       host: ${{ secrets.DROPLET_HOST }}
-       username: ${{ secrets.DROPLET_USERNAME }}
-       password: ${{ secrets.DROPLET_PASSWORD }}
-       script: |
-         # Navigate to project directory
-         cd /mnt/volume_blr1_04/project/pms/saas-pms-backend
-        
-         # Pull latest changes from repository
-         git pull origin main
-        
-         # Stop existing containers
-         docker compose down
-        
-         # Build and start containers with latest changes
-         docker compose up -d --build
-        
-         # Clean up unused Docker resources
-         echo "Cleaning up unused Docker resources..."
-        
-         # Remove stopped containers
-         docker container prune -f
-        
-         # Remove unused images
-         docker image prune -a -f
-        
-         # Remove unused volumes
-         docker volume prune -f
-        
-         # Remove unused networks
-         docker network prune -f
-        
-         # Show running containers for verification
-         echo "Currently running containers:"
-         docker ps
-        
-         # Show disk usage after cleanup
-         echo "Docker system disk usage:"
-         docker system df
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to DigitalOcean Droplet
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.DROPLET_HOST }}
+          username: ${{ secrets.DROPLET_USERNAME }}
+          password: ${{ secrets.DROPLET_PASSWORD }}
+          script: |
+            # Navigate to project directory
+            cd /mnt/volume_blr1_04/project/pms/saas-pms-backend
+
+            # Pull latest changes from repository
+            git pull origin main
+
+            # Stop existing containers
+            docker compose down
+
+            # Build and start containers with latest changes
+            docker compose up -d --build
+
+            # Clean up unused Docker resources
+            echo "Cleaning up unused Docker resources..."
+
+            # Remove stopped containers
+            docker container prune -f
+
+            # Remove unused images
+            docker image prune -a -f
+
+            # Remove unused volumes
+            docker volume prune -f
+
+            # Remove unused networks
+            docker network prune -f
+
+            # Show running containers for verification
+            echo "Currently running containers:"
+            docker ps
+
+            # Show disk usage after cleanup
+            echo "Docker system disk usage:"
+            docker system df
