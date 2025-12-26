@@ -1,6 +1,7 @@
 from django.urls import path, include
+from backend.project.adapters.viewset.project_activity_viewset import ProjectActivityLogViewSet
 from rest_framework.routers import DefaultRouter
-from project.adapters.viewset.proejct_viewset import ProjectViewSet, OngoingProjectViewSet, ProjectActivityLogViewSet
+from project.adapters.viewset.proejct_viewset import ProjectViewSet, OngoingProjectViewSet
 
 
 router = DefaultRouter()
