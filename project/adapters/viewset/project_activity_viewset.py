@@ -96,7 +96,6 @@ class ProjectActivityLogViewSet(viewsets.ModelViewSet):
         authentication_classes=[]
     )
     def post_push_event(self, request, pk=None):
-        print(f"🔵 Webhook received for project ID: {pk}")
         try:
             payload = request.data if isinstance(request.data, dict) else json.loads(request.body.decode())
             print(f"📦 Payload parsed successfully. Repository: {payload.get('repository', {}).get('name')}")
