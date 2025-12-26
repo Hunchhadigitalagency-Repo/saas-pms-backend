@@ -140,6 +140,7 @@ class ProjectActivityLogViewSet(viewsets.ModelViewSet):
     - GitHub webhook endpoint for push events
     """
     serializer_class = ProjectActivityLogSerializer
+    pagination_class = CustomPaginator
     permission_classes = [IsAuthenticated]
     authentication_classes = [CookieJWTAuthentication]
     
@@ -153,10 +154,15 @@ class ProjectActivityLogViewSet(viewsets.ModelViewSet):
         URL: /api/v1/project-activity-logs/by-project/{project_id}/
         """
         queryset = ProjectActivityLog.objects.filter(project__id=project_id).order_by('-created_at')
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            serializer = self.get_serializer(page, many=True)
+            return self.get_paginated_response(serializer.data)
+        
         serializer = self.get_serializer(queryset, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
     
-    @action(detail=True, methods=['post'], url_path='post-push-event', permission_classes=[AllowAny])
+    @action(detail=True, methods=['post'], url_path='post-push-event', permission_classes=[AllowAny], authentication_classes=[])
     def post_push_event(self, request, pk=None):
         """
         Handle GitHub push event webhooks.
