@@ -238,7 +238,6 @@ class ProjectActivityLogViewSet(viewsets.ModelViewSet):
                 )
 
             updated_items = []
-
             for commit in commits:
                 message = commit.get("message", "")
                 commit_id = commit.get("id")
