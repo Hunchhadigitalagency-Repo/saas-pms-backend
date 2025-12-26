@@ -55,8 +55,6 @@ def is_status_allowed(branch: str, status: str) -> bool:
     if branch in ["main", "master", "production"]:
         return status == "completed"
     return True  # fallback
-
-
 class ProjectActivityLogViewSet(viewsets.ModelViewSet):
     """
     Project Activity Log API 
