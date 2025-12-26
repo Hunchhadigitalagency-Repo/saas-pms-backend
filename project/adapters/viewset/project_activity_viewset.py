@@ -46,7 +46,7 @@ STATUS_MAP = {
     "start": Status.IN_PROGRESS,
     "inprogress": Status.IN_PROGRESS,
     "done": Status.COMPLETED,
-    "complete": Status.COMPLETED,
+    "completed": Status.COMPLETED,
     "closed": Status.COMPLETED,
 }
 
