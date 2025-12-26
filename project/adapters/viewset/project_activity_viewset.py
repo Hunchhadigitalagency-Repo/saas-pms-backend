@@ -124,7 +124,7 @@ class ProjectActivityLogViewSet(viewsets.ModelViewSet):
             commit_id = head_commit.get("id")
             author = head_commit.get("author", {}).get("name")
             print(f"📝 Processing head commit: {commit_id[:7]} by {author}")
-            print(f"   Message: {message}")
+            print(f"Message: {message}")
 
             updated_items = []
             handled_ids = set()
@@ -132,29 +132,29 @@ class ProjectActivityLogViewSet(viewsets.ModelViewSet):
             # 1️⃣ Explicit per-task statuses (TASK-12:#done)
             explicit_matches = EXPLICIT_TASK_STATUS_REGEX.findall(message)
             if explicit_matches:
-                print(f"   🔍 Found {len(explicit_matches)} explicit task status(es)")
+                print(f"🔍 Found {len(explicit_matches)} explicit task status(es)")
 
             for task_id, keyword in explicit_matches:
                 task_id = int(task_id)
                 new_status = resolve_status(keyword)
-                print(f"      Task {task_id}: keyword '{keyword}' -> status '{new_status}'")
+                print(f"Task {task_id}: keyword '{keyword}' -> status '{new_status}'")
 
                 if not new_status or not is_status_allowed(branch, new_status):
-                    print(f"      ⏭️ Task {task_id} skipped: status '{new_status}' not allowed for branch '{branch}'")
+                    print(f"⏭️ Task {task_id} skipped: status '{new_status}' not allowed for branch '{branch}'")
                     continue
 
                 try:
                     work_item = WorkItems.objects.get(id=task_id, project=project)
-                    print(f"      ✅ Work item {task_id} found")
+                    print(f"✅ Work item {task_id} found")
                 except WorkItems.DoesNotExist:
-                    print(f"      ❌ Work item {task_id} not found in project {project.name}")
+                    print(f"❌ Work item {task_id} not found in project {project.name}")
                     continue
 
                 if work_item.status != new_status:
                     old_status = work_item.status
                     work_item.status = new_status
                     work_item.save(update_fields=["status", "updated_at"])
-                    print(f"      ✏️ Task {task_id} updated: {old_status} → {new_status}")
+                    print(f"✏️ Task {task_id} updated: {old_status} → {new_status}")
 
                     updated_items.append({
                         "work_item": work_item.id,
@@ -165,7 +165,7 @@ class ProjectActivityLogViewSet(viewsets.ModelViewSet):
                         "author": author,
                     })
                 else:
-                    print(f"      ℹ️ Task {task_id} already has status '{new_status}'")
+                    print(f"ℹ️ Task {task_id} already has status '{new_status}'")
 
                 handled_ids.add(task_id)
 
@@ -174,19 +174,19 @@ class ProjectActivityLogViewSet(viewsets.ModelViewSet):
             if global_match:
                 global_keyword = global_match.group("status")
                 global_status = resolve_status(global_keyword)
-                print(f"   🌐 Found global status: '{global_keyword}' -> '{global_status}'")
+                print(f"🌐 Found global status: '{global_keyword}' -> '{global_status}'")
 
                 if global_status and is_status_allowed(branch, global_status):
                     all_ids = {int(i) for i in TASK_ID_REGEX.findall(message)}
                     unhandled_ids = all_ids - handled_ids
-                    print(f"   🔢 Found {len(all_ids)} task ID(s), {len(unhandled_ids)} unhandled")
+                    print(f"🔢 Found {len(all_ids)} task ID(s), {len(unhandled_ids)} unhandled")
 
                     for task_id in unhandled_ids:
                         try:
                             work_item = WorkItems.objects.get(id=task_id, project=project)
-                            print(f"      ✅ Work item {task_id} found")
+                            print(f"✅ Work item {task_id} found")
                         except WorkItems.DoesNotExist:
-                            print(f"      ❌ Work item {task_id} not found in project {project.name}")
+                            print(f"❌ Work item {task_id} not found in project {project.name}")
                             continue
 
                         if work_item.status != global_status:
@@ -204,11 +204,11 @@ class ProjectActivityLogViewSet(viewsets.ModelViewSet):
                                 "author": author,
                             })
                         else:
-                            print(f"      ℹ️ Task {task_id} already has status '{global_status}'")
+                            print(f"ℹ️ Task {task_id} already has status '{global_status}'")
                 else:
-                    print(f"      ⏭️ Global status '{global_status}' not allowed for branch '{branch}'")
+                    print(f"⏭️ Global status '{global_status}' not allowed for branch '{branch}'")
             else:
-                print(f"   ℹ️ No global status found in commit message")
+                print(f"ℹ️ No global status found in commit message")
 
             print(f"📊 Total work items updated: {len(updated_items)}")
 
