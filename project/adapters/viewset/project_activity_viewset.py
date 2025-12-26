@@ -113,110 +113,109 @@ class ProjectActivityLogViewSet(viewsets.ModelViewSet):
                 )
 
             branch = payload.get("ref", "").split("/")[-1]
-            commits = payload.get("commits", [])
-            print(f"🌿 Branch: {branch}, Total commits: {len(commits)}")
+            head_commit = payload.get("head_commit")
+            print(f"🌿 Branch: {branch}, head commit present: {'Yes' if head_commit else 'No'}")
 
-            if not commits:
-                print(f"⚠️ No commits in push for project {project.name}")
+            if not head_commit:
+                print(f"⚠️ No head_commit found for project {project.name}")
                 return Response(
-                    {"status": "ignored", "message": "No commits in push"},
+                    {"status": "ignored", "message": "No head_commit in push"},
                     status=status.HTTP_200_OK
                 )
 
+            message = head_commit.get("message", "")
+            commit_id = head_commit.get("id")
+            author = head_commit.get("author", {}).get("name")
+            print(f"📝 Processing head commit: {commit_id[:7]} by {author}")
+            print(f"   Message: {message}")
+
             updated_items = []
-            for idx, commit in enumerate(commits, 1):
-                message = commit.get("message", "")
-                commit_id = commit.get("id")
-                author = commit.get("author", {}).get("name")
-                print(f"📝 Processing commit {idx}/{len(commits)}: {commit_id[:7]} by {author}")
-                print(f"   Message: {message}")
+            handled_ids = set()
 
-                handled_ids = set()
+            # 1️⃣ Explicit per-task statuses (TASK-12:#done)
+            explicit_matches = EXPLICIT_TASK_STATUS_REGEX.findall(message)
+            if explicit_matches:
+                print(f"   🔍 Found {len(explicit_matches)} explicit task status(es)")
 
-                # 1️⃣ Explicit per-task statuses (TASK-12:#done)
-                explicit_matches = EXPLICIT_TASK_STATUS_REGEX.findall(message)
-                if explicit_matches:
-                    print(f"   🔍 Found {len(explicit_matches)} explicit task status(es)")
-                
-                for task_id, keyword in explicit_matches:
-                    task_id = int(task_id)
-                    new_status = resolve_status(keyword)
-                    print(f"      Task {task_id}: keyword '{keyword}' -> status '{new_status}'")
+            for task_id, keyword in explicit_matches:
+                task_id = int(task_id)
+                new_status = resolve_status(keyword)
+                print(f"      Task {task_id}: keyword '{keyword}' -> status '{new_status}'")
 
-                    if not new_status or not is_status_allowed(branch, new_status):
-                        print(f"      ⏭️ Task {task_id} skipped: status '{new_status}' not allowed for branch '{branch}'")
-                        continue
+                if not new_status or not is_status_allowed(branch, new_status):
+                    print(f"      ⏭️ Task {task_id} skipped: status '{new_status}' not allowed for branch '{branch}'")
+                    continue
 
-                    try:
-                        work_item = WorkItems.objects.get(id=task_id, project=project)
-                        print(f"      ✅ Work item {task_id} found")
-                    except WorkItems.DoesNotExist:
-                        print(f"      ❌ Work item {task_id} not found in project {project.name}")
-                        continue
+                try:
+                    work_item = WorkItems.objects.get(id=task_id, project=project)
+                    print(f"      ✅ Work item {task_id} found")
+                except WorkItems.DoesNotExist:
+                    print(f"      ❌ Work item {task_id} not found in project {project.name}")
+                    continue
 
-                    if work_item.status != new_status:
-                        old_status = work_item.status
-                        work_item.status = new_status
-                        work_item.save(update_fields=["status", "updated_at"])
-                        print(f"      ✏️ Task {task_id} updated: {old_status} → {new_status}")
+                if work_item.status != new_status:
+                    old_status = work_item.status
+                    work_item.status = new_status
+                    work_item.save(update_fields=["status", "updated_at"])
+                    print(f"      ✏️ Task {task_id} updated: {old_status} → {new_status}")
 
-                        updated_items.append({
-                            "work_item": work_item.id,
-                            "from": old_status,
-                            "to": new_status,
-                            "commit": commit_id,
-                            "branch": branch,
-                            "author": author,
-                        })
-                    else:
-                        print(f"      ℹ️ Task {task_id} already has status '{new_status}'")
-
-                    handled_ids.add(task_id)
-
-                # 2️⃣ Global status fallback (TASK-1 TASK-2 #done)
-                global_match = GLOBAL_STATUS_REGEX.search(message)
-                if global_match:
-                    global_keyword = global_match.group("status")
-                    global_status = resolve_status(global_keyword)
-                    print(f"   🌐 Found global status: '{global_keyword}' -> '{global_status}'")
-
-                    if global_status and is_status_allowed(branch, global_status):
-                        all_ids = {int(i) for i in TASK_ID_REGEX.findall(message)}
-                        unhandled_ids = all_ids - handled_ids
-                        print(f"   🔢 Found {len(all_ids)} task ID(s), {len(unhandled_ids)} unhandled")
-
-                        for task_id in unhandled_ids:
-                            try:
-                                work_item = WorkItems.objects.get(id=task_id, project=project)
-                                print(f"      ✅ Work item {task_id} found")
-                            except WorkItems.DoesNotExist:
-                                print(f"      ❌ Work item {task_id} not found in project {project.name}")
-                                continue
-
-                            if work_item.status != global_status:
-                                old_status = work_item.status
-                                work_item.status = global_status
-                                work_item.save(update_fields=["status", "updated_at"])
-                                print(f"      ✏️ Task {task_id} updated (global): {old_status} → {global_status}")
-
-                                updated_items.append({
-                                    "work_item": work_item.id,
-                                    "from": old_status,
-                                    "to": global_status,
-                                    "commit": commit_id,
-                                    "branch": branch,
-                                    "author": author,
-                                })
-                            else:
-                                print(f"      ℹ️ Task {task_id} already has status '{global_status}'")
-                    else:
-                        print(f"      ⏭️ Global status '{global_status}' not allowed for branch '{branch}'")
+                    updated_items.append({
+                        "work_item": work_item.id,
+                        "from": old_status,
+                        "to": new_status,
+                        "commit": commit_id,
+                        "branch": branch,
+                        "author": author,
+                    })
                 else:
-                    print(f"   ℹ️ No global status found in commit message")
+                    print(f"      ℹ️ Task {task_id} already has status '{new_status}'")
+
+                handled_ids.add(task_id)
+
+            # 2️⃣ Global status fallback (TASK-1 TASK-2 #done)
+            global_match = GLOBAL_STATUS_REGEX.search(message)
+            if global_match:
+                global_keyword = global_match.group("status")
+                global_status = resolve_status(global_keyword)
+                print(f"   🌐 Found global status: '{global_keyword}' -> '{global_status}'")
+
+                if global_status and is_status_allowed(branch, global_status):
+                    all_ids = {int(i) for i in TASK_ID_REGEX.findall(message)}
+                    unhandled_ids = all_ids - handled_ids
+                    print(f"   🔢 Found {len(all_ids)} task ID(s), {len(unhandled_ids)} unhandled")
+
+                    for task_id in unhandled_ids:
+                        try:
+                            work_item = WorkItems.objects.get(id=task_id, project=project)
+                            print(f"      ✅ Work item {task_id} found")
+                        except WorkItems.DoesNotExist:
+                            print(f"      ❌ Work item {task_id} not found in project {project.name}")
+                            continue
+
+                        if work_item.status != global_status:
+                            old_status = work_item.status
+                            work_item.status = global_status
+                            work_item.save(update_fields=["status", "updated_at"])
+                            print(f"      ✏️ Task {task_id} updated (global): {old_status} → {global_status}")
+
+                            updated_items.append({
+                                "work_item": work_item.id,
+                                "from": old_status,
+                                "to": global_status,
+                                "commit": commit_id,
+                                "branch": branch,
+                                "author": author,
+                            })
+                        else:
+                            print(f"      ℹ️ Task {task_id} already has status '{global_status}'")
+                else:
+                    print(f"      ⏭️ Global status '{global_status}' not allowed for branch '{branch}'")
+            else:
+                print(f"   ℹ️ No global status found in commit message")
 
             print(f"📊 Total work items updated: {len(updated_items)}")
 
-            # 3️⃣ Store activity log (unchanged behavior)
+            # 3️⃣ Store activity log
             activity_log = ProjectActivityLog.objects.create(
                 project=project,
                 activity={
@@ -224,7 +223,7 @@ class ProjectActivityLogViewSet(viewsets.ModelViewSet):
                     "branch": branch,
                     "repository": payload.get("repository", {}).get("name"),
                     "pusher": payload.get("pusher", {}).get("name"),
-                    "commits": commits,
+                    "head_commit": head_commit,
                     "updated_work_items": updated_items,
                 }
             )
