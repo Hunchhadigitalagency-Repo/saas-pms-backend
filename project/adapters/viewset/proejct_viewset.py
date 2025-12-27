@@ -10,6 +10,7 @@ from utils.custom_paginator import CustomPaginator
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.decorators import action
 from pms.jwt_auth import CookieJWTAuthentication
+from utils.slack_notification import notify_project_update
 
 class ProjectViewSet(viewsets.ModelViewSet):
     """
@@ -79,10 +80,27 @@ class ProjectViewSet(viewsets.ModelViewSet):
         partial = kwargs.pop('partial', False)
         instance = self.get_object()
         
+        # Track changes
+        old_values = {}
+        tracked_fields = ['name', 'status', 'priority', 'due_date', 'description']
+        for field in tracked_fields:
+            old_values[field] = getattr(instance, field)
+        
         # Use write serializer for validation and saving
         write_serializer = self.get_serializer(instance, data=request.data, partial=partial)
         write_serializer.is_valid(raise_exception=True)
         instance = write_serializer.save()
+        
+        # Detect changes and send Slack notification only if channels are connected
+        changes = {}
+        for field in tracked_fields:
+            new_value = getattr(instance, field)
+            old_value = old_values[field]
+            if old_value != new_value:
+                changes[field] = (str(old_value) if old_value else 'None', str(new_value) if new_value else 'None')
+        
+        if changes and instance.slack_channels.exists():
+            notify_project_update(instance, request.user, changes)
         
         # Use read serializer for response to include team_members and all fields
         read_serializer = ProjectSerializer(instance, context={'request': request})

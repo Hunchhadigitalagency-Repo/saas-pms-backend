@@ -201,9 +201,10 @@ class SlackTokenViewSet(viewsets.ModelViewSet):
             'scopes': SLACK_OAUTH_SCOPES,
             'scope_descriptions': {
                 'channels:read': 'View basic information about public channels in a workspace',
-                'chat:write': 'Send messages as @collabrix-integration',
-                'groups:read': 'View basic information about private channels that "collabrix-integration" has been added to'
-            }
+                'chat:write': 'Send messages as your Slack app',
+                'groups:read': 'View basic information about private channels that your app has been added to'
+            },
+            'note': 'Private channels will only appear if your Slack app has been invited to them. To access private channels, invite your app using /invite @your-app-name in the channel.'
         })
 
     @action(detail=False, methods=['get'])
@@ -240,6 +241,7 @@ class SlackTokenViewSet(viewsets.ModelViewSet):
     def _fetch_slack_channels(token):
         """
         Fetch all channels (public and private) from Slack API
+        Note: For private channels, the bot must be a member of the channel
         """
         try:
             headers = {
@@ -248,38 +250,58 @@ class SlackTokenViewSet(viewsets.ModelViewSet):
             }
             
             all_channels = []
+            cursor = None
             
-            # Fetch public channels
-            response = requests.get(
-                'https://slack.com/api/conversations.list',
-                headers=headers,
-                params={
+            # Fetch channels with pagination support
+            while True:
+                params = {
                     'types': 'public_channel,private_channel',
                     'exclude_archived': True,
-                    'limit': 1000
-                },
-                timeout=10
-            )
+                    'limit': 200
+                }
+                
+                if cursor:
+                    params['cursor'] = cursor
+                
+                response = requests.get(
+                    'https://slack.com/api/conversations.list',
+                    headers=headers,
+                    params=params,
+                    timeout=10
+                )
+                
+                if response.status_code != 200:
+                    logger.error(f"Slack API error: {response.status_code}")
+                    return None
+                
+                data = response.json()
+                if not data.get('ok'):
+                    logger.error(f"Slack API error: {data.get('error')}")
+                    return None
+                
+                channels = data.get('channels', [])
+                logger.info(f"Fetched {len(channels)} channels from Slack")
+                
+                for channel in channels:
+                    channel_info = {
+                        'id': channel.get('id'),
+                        'name': channel.get('name'),
+                        'is_private': channel.get('is_private', False),
+                        'is_channel': channel.get('is_channel', True),
+                        'num_members': channel.get('num_members', 0)
+                    }
+                    all_channels.append(channel_info)
+                    
+                    # Log private channels for debugging
+                    if channel.get('is_private'):
+                        logger.info(f"Found private channel: {channel.get('name')}")
+                
+                # Check for pagination
+                cursor = data.get('response_metadata', {}).get('next_cursor')
+                if not cursor:
+                    break
             
-            if response.status_code != 200:
-                logger.error(f"Slack API error: {response.status_code}")
-                return None
-            
-            data = response.json()
-            if not data.get('ok'):
-                logger.error(f"Slack API error: {data.get('error')}")
-                return None
-            
-            channels = data.get('channels', [])
-            for channel in channels:
-                all_channels.append({
-                    'id': channel.get('id'),
-                    'name': channel.get('name'),
-                    'is_private': channel.get('is_private', False),
-                    'is_channel': channel.get('is_channel', True),
-                    'num_members': channel.get('num_members', 0)
-                })
-            
+            logger.info(f"Total channels fetched: {len(all_channels)} (Public: {sum(1 for c in all_channels if not c['is_private'])}, Private: {sum(1 for c in all_channels if c['is_private'])})")
             return all_channels
         except Exception as e:
             logger.error(f"Error fetching Slack channels: {str(e)}")
