@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from settings.models import SlackToken
+from settings_app.models import SlackToken
 
 
 class SlackTokenSerializer(serializers.ModelSerializer):

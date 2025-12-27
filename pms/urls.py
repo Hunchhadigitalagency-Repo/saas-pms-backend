@@ -38,7 +38,7 @@ urlpatterns = [
     path("api/v1/", include("project.urls")),       # your project endpoints
     path("api/v1/", include("work_items.urls")),          # your work items endpoints
     path("api/v1/", include("dashboard.urls")),          # your work items endpoints
-    path("api/v1/", include("settings.urls")),          # your settings endpoints
+    path("api/v1/", include("settings_app.urls")),          # your settings endpoints
 ]
 
 if settings.DEBUG:

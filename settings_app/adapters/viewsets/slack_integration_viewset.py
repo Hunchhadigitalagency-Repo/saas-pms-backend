@@ -2,8 +2,8 @@ from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
-from settings.models import SlackToken
-from settings.adapters.serializers import SlackTokenSerializer, SlackTokenDetailSerializer
+from settings_app.models import SlackToken
+from settings_app.adapters.serializers import SlackTokenSerializer, SlackTokenDetailSerializer
 import requests
 import logging
 
