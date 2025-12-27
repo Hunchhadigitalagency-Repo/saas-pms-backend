@@ -84,11 +84,26 @@ def notify_project_update(project, updated_by, changes: Dict[str, tuple]) -> Non
             logger.debug(f"No Slack channels connected to project {project.name}")
             return
         
+        # Helper function to strip HTML tags
+        def strip_html(text):
+            """Remove HTML tags from text"""
+            if not text or text == 'None':
+                return text
+            import re
+            # Remove HTML tags
+            clean = re.sub('<.*?>', '', str(text))
+            # Clean up extra whitespace
+            clean = ' '.join(clean.split())
+            return clean
+        
         # Build the change description
         change_lines = []
         for field, (old_val, new_val) in changes.items():
             field_display = field.replace('_', ' ').title()
-            change_lines.append(f"• *{field_display}*: {old_val} → {new_val}")
+            # Strip HTML from values
+            clean_old = strip_html(old_val)
+            clean_new = strip_html(new_val)
+            change_lines.append(f"• *{field_display}*: {clean_old} → {clean_new}")
         
         changes_text = "\n".join(change_lines)
         
