@@ -122,6 +122,35 @@ class ProjectWriteSerializer(serializers.ModelSerializer):
         instance = super().update(instance, validated_data)
 
         if team_members_data is not None:
+            # Track existing members before deletion
+            existing_members = {
+                member.user.id: {'user': member.user, 'role': member.role}
+                for member in instance.projectmembers_set.all()
+            }
+            
+            # Get new members from the data
+            new_members_dict = {
+                member_data['user'].id: member_data
+                for member_data in team_members_data
+            }
+            
+            # Import notification functions
+            from utils.slack_notification import notify_team_member_added, notify_team_member_removed
+            
+            # Check if project has Slack channels connected
+            has_slack = instance.slack_channels.exists()
+            
+            # Get the current user from the context
+            request = self.context.get('request')
+            current_user = request.user if request else None
+            
+            # Detect removed members
+            if has_slack and current_user:
+                for user_id, member_info in existing_members.items():
+                    if user_id not in new_members_dict:
+                        # Member was removed
+                        notify_team_member_removed(instance, current_user, member_info['user'])
+            
             # Delete existing members and create new ones
             instance.projectmembers_set.all().delete()
             
@@ -131,6 +160,10 @@ class ProjectWriteSerializer(serializers.ModelSerializer):
                     user=member_data['user'],
                     role=member_data['role']
                 )
+                
+                # Detect newly added members
+                if has_slack and current_user and member_data['user'].id not in existing_members:
+                    notify_team_member_added(instance, current_user, member_data['user'], member_data['role'])
         
         return instance
 

@@ -220,3 +220,140 @@ def notify_project_created(project, created_by) -> None:
             
     except Exception as e:
         logger.error(f"Error notifying project creation: {str(e)}")
+
+
+def notify_team_member_added(project, added_by, new_member, role) -> None:
+    """
+    Notify all connected Slack channels when a team member is added to a project.
+    
+    Args:
+        project: The Project instance
+        added_by: The User who added the member
+        new_member: The User who was added
+        role: The role assigned to the new member
+    """
+    try:
+        project_channels = ProjectSlackChannel.objects.filter(project=project)
+        
+        if not project_channels.exists():
+            return
+        
+        member_name = new_member.get_full_name() or new_member.username
+        added_by_name = added_by.get_full_name() or added_by.username
+        
+        plain_message = (
+            f"👥 Team Member Added to {project.name}\n"
+            f"{member_name} was added as {role.title()}\n"
+            f"Added by: {added_by_name}"
+        )
+        
+        blocks = [
+            {
+                "type": "header",
+                "text": {
+                    "type": "plain_text",
+                    "text": f"👥 Team Member Added",
+                    "emoji": True
+                }
+            },
+            {
+                "type": "section",
+                "fields": [
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Project:*\n{project.name}"
+                    },
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*New Member:*\n{member_name}"
+                    },
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Role:*\n{role.title()}"
+                    },
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Added by:*\n{added_by_name}"
+                    }
+                ]
+            },
+            {
+                "type": "divider"
+            }
+        ]
+        
+        for project_channel in project_channels:
+            send_slack_message(
+                channel_id=project_channel.channel_id,
+                message=plain_message,
+                blocks=blocks
+            )
+            
+    except Exception as e:
+        logger.error(f"Error notifying team member addition: {str(e)}")
+
+
+def notify_team_member_removed(project, removed_by, removed_member) -> None:
+    """
+    Notify all connected Slack channels when a team member is removed from a project.
+    
+    Args:
+        project: The Project instance
+        removed_by: The User who removed the member
+        removed_member: The User who was removed
+    """
+    try:
+        project_channels = ProjectSlackChannel.objects.filter(project=project)
+        
+        if not project_channels.exists():
+            return
+        
+        member_name = removed_member.get_full_name() or removed_member.username
+        removed_by_name = removed_by.get_full_name() or removed_by.username
+        
+        plain_message = (
+            f"👤 Team Member Removed from {project.name}\n"
+            f"{member_name} was removed from the project\n"
+            f"Removed by: {removed_by_name}"
+        )
+        
+        blocks = [
+            {
+                "type": "header",
+                "text": {
+                    "type": "plain_text",
+                    "text": f"👤 Team Member Removed",
+                    "emoji": True
+                }
+            },
+            {
+                "type": "section",
+                "fields": [
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Project:*\n{project.name}"
+                    },
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Removed Member:*\n{member_name}"
+                    },
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Removed by:*\n{removed_by_name}"
+                    }
+                ]
+            },
+            {
+                "type": "divider"
+            }
+        ]
+        
+        for project_channel in project_channels:
+            send_slack_message(
+                channel_id=project_channel.channel_id,
+                message=plain_message,
+                blocks=blocks
+            )
+            
+    except Exception as e:
+        logger.error(f"Error notifying team member removal: {str(e)}")
