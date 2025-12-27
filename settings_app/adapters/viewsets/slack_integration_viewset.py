@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 SLACK_OAUTH_SCOPES = [
     'channels:read',
     'chat:write',
+    'chat:write.public',
     'groups:read',
 ]
 
@@ -202,6 +203,7 @@ class SlackTokenViewSet(viewsets.ModelViewSet):
             'scope_descriptions': {
                 'channels:read': 'View basic information about public channels in a workspace',
                 'chat:write': 'Send messages as your Slack app',
+                'chat:write.public': 'Send messages to channels your app is not a member of',
                 'groups:read': 'View basic information about private channels that your app has been added to'
             },
             'note': 'Private channels will only appear if your Slack app has been invited to them. To access private channels, invite your app using /invite @your-app-name in the channel.'

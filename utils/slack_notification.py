@@ -261,7 +261,10 @@ def notify_team_member_added(project, added_by, new_member, role) -> None:
     try:
         project_channels = ProjectSlackChannel.objects.filter(project=project)
         
+        logger.info(f"Found {project_channels.count()} channels connected to project {project.name}")
+        
         if not project_channels.exists():
+            logger.warning(f"No Slack channels connected to project {project.name}")
             return
         
         member_name = new_member.get_full_name() or new_member.username
@@ -339,12 +342,18 @@ def notify_team_member_added(project, added_by, new_member, role) -> None:
             }
         ]
         
+        # Send to all connected channels
         for project_channel in project_channels:
-            send_slack_message(
+            logger.info(f"Sending notification to channel: {project_channel.channel_name} ({project_channel.channel_id})")
+            success = send_slack_message(
                 channel_id=project_channel.channel_id,
                 message=plain_message,
                 blocks=blocks
             )
+            if success:
+                logger.info(f"Successfully sent to {project_channel.channel_name}")
+            else:
+                logger.error(f"Failed to send to {project_channel.channel_name}")
             
     except Exception as e:
         logger.error(f"Error notifying team member addition: {str(e)}")
@@ -362,7 +371,10 @@ def notify_team_member_removed(project, removed_by, removed_member) -> None:
     try:
         project_channels = ProjectSlackChannel.objects.filter(project=project)
         
+        logger.info(f"Found {project_channels.count()} channels connected to project {project.name}")
+        
         if not project_channels.exists():
+            logger.warning(f"No Slack channels connected to project {project.name}")
             return
         
         member_name = removed_member.get_full_name() or removed_member.username
@@ -427,12 +439,18 @@ def notify_team_member_removed(project, removed_by, removed_member) -> None:
             }
         ]
         
+        # Send to all connected channels
         for project_channel in project_channels:
-            send_slack_message(
+            logger.info(f"Sending notification to channel: {project_channel.channel_name} ({project_channel.channel_id})")
+            success = send_slack_message(
                 channel_id=project_channel.channel_id,
                 message=plain_message,
                 blocks=blocks
             )
+            if success:
+                logger.info(f"Successfully sent to {project_channel.channel_name}")
+            else:
+                logger.error(f"Failed to send to {project_channel.channel_name}")
             
     except Exception as e:
         logger.error(f"Error notifying team member removal: {str(e)}")
