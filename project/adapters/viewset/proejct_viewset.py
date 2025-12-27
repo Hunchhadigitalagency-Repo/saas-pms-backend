@@ -71,7 +71,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
         instance = write_serializer.save()
         
         # Use read serializer for response to include team_members and all fields
-        read_serializer = ProjectSerializer(instance)
+        read_serializer = ProjectSerializer(instance, context={'request': request})
         headers = self.get_success_headers(read_serializer.data)
         return Response(read_serializer.data, status=status.HTTP_201_CREATED, headers=headers)
 
@@ -85,7 +85,7 @@ class ProjectViewSet(viewsets.ModelViewSet):
         instance = write_serializer.save()
         
         # Use read serializer for response to include team_members and all fields
-        read_serializer = ProjectSerializer(instance)
+        read_serializer = ProjectSerializer(instance, context={'request': request})
         return Response(read_serializer.data)
 
 class OngoingProjectViewSet(viewsets.ModelViewSet):
