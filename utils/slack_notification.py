@@ -105,7 +105,7 @@ def notify_project_update(project, updated_by, changes: Dict[str, tuple]) -> Non
                 "type": "header",
                 "text": {
                     "type": "plain_text",
-                    "text": f"📝 Project Update: {project.name}",
+                    "text": "📝 Project Update",
                     "emoji": True
                 }
             },
@@ -114,11 +114,37 @@ def notify_project_update(project, updated_by, changes: Dict[str, tuple]) -> Non
                 "fields": [
                     {
                         "type": "mrkdwn",
-                        "text": f"*Updated by:*\n{updated_by.get_full_name() or updated_by.username}"
+                        "text": f"*Project:*"
                     },
                     {
                         "type": "mrkdwn",
-                        "text": f"*Status:*\n{project.status.title()}"
+                        "text": f"{project.name}"
+                    }
+                ]
+            },
+            {
+                "type": "section",
+                "fields": [
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Updated by:*"
+                    },
+                    {
+                        "type": "mrkdwn",
+                        "text": f"{updated_by.get_full_name() or updated_by.username}"
+                    }
+                ]
+            },
+            {
+                "type": "section",
+                "fields": [
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Status:*"
+                    },
+                    {
+                        "type": "mrkdwn",
+                        "text": f"{project.status.title()}"
                     }
                 ]
             },
@@ -252,7 +278,7 @@ def notify_team_member_added(project, added_by, new_member, role) -> None:
                 "type": "header",
                 "text": {
                     "type": "plain_text",
-                    "text": f"👥 Team Member Added",
+                    "text": "👥 Team Member Added",
                     "emoji": True
                 }
             },
@@ -261,19 +287,50 @@ def notify_team_member_added(project, added_by, new_member, role) -> None:
                 "fields": [
                     {
                         "type": "mrkdwn",
-                        "text": f"*Project:*\n{project.name}"
+                        "text": f"*Project:*"
                     },
                     {
                         "type": "mrkdwn",
-                        "text": f"*New Member:*\n{member_name}"
+                        "text": f"{project.name}"
+                    }
+                ]
+            },
+            {
+                "type": "section",
+                "fields": [
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*New Member:*"
                     },
                     {
                         "type": "mrkdwn",
-                        "text": f"*Role:*\n{role.title()}"
+                        "text": f"{member_name}"
+                    }
+                ]
+            },
+            {
+                "type": "section",
+                "fields": [
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Role:*"
                     },
                     {
                         "type": "mrkdwn",
-                        "text": f"*Added by:*\n{added_by_name}"
+                        "text": f"{role.title()}"
+                    }
+                ]
+            },
+            {
+                "type": "section",
+                "fields": [
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Added by:*"
+                    },
+                    {
+                        "type": "mrkdwn",
+                        "text": f"{added_by_name}"
                     }
                 ]
             },
@@ -322,7 +379,7 @@ def notify_team_member_removed(project, removed_by, removed_member) -> None:
                 "type": "header",
                 "text": {
                     "type": "plain_text",
-                    "text": f"👤 Team Member Removed",
+                    "text": "👤 Team Member Removed",
                     "emoji": True
                 }
             },
@@ -331,15 +388,37 @@ def notify_team_member_removed(project, removed_by, removed_member) -> None:
                 "fields": [
                     {
                         "type": "mrkdwn",
-                        "text": f"*Project:*\n{project.name}"
+                        "text": f"*Project:*"
                     },
                     {
                         "type": "mrkdwn",
-                        "text": f"*Removed Member:*\n{member_name}"
+                        "text": f"{project.name}"
+                    }
+                ]
+            },
+            {
+                "type": "section",
+                "fields": [
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Removed Member:*"
                     },
                     {
                         "type": "mrkdwn",
-                        "text": f"*Removed by:*\n{removed_by_name}"
+                        "text": f"{member_name}"
+                    }
+                ]
+            },
+            {
+                "type": "section",
+                "fields": [
+                    {
+                        "type": "mrkdwn",
+                        "text": f"*Removed by:*"
+                    },
+                    {
+                        "type": "mrkdwn",
+                        "text": f"{removed_by_name}"
                     }
                 ]
             },
