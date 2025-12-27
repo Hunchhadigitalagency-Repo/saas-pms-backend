@@ -205,3 +205,82 @@ class SlackTokenViewSet(viewsets.ModelViewSet):
                 'groups:read': 'View basic information about private channels that "collabrix-integration" has been added to'
             }
         })
+
+    @action(detail=False, methods=['get'])
+    def get_channels(self, request):
+        """
+        Get all Slack channels (public and private) that the bot has access to
+        """
+        try:
+            slack_token_obj = SlackToken.objects.first()
+            if not slack_token_obj or not slack_token_obj.is_connected:
+                return Response(
+                    {'error': 'Slack is not connected'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            channels = self._fetch_slack_channels(slack_token_obj.slack_token)
+            if channels is None:
+                return Response(
+                    {'error': 'Failed to fetch channels from Slack'},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+
+            return Response({
+                'channels': channels
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
+            logger.error(f"Error fetching Slack channels: {str(e)}")
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @staticmethod
+    def _fetch_slack_channels(token):
+        """
+        Fetch all channels (public and private) from Slack API
+        """
+        try:
+            headers = {
+                'Authorization': f'Bearer {token}',
+                'Content-Type': 'application/json'
+            }
+            
+            all_channels = []
+            
+            # Fetch public channels
+            response = requests.get(
+                'https://slack.com/api/conversations.list',
+                headers=headers,
+                params={
+                    'types': 'public_channel,private_channel',
+                    'exclude_archived': True,
+                    'limit': 1000
+                },
+                timeout=10
+            )
+            
+            if response.status_code != 200:
+                logger.error(f"Slack API error: {response.status_code}")
+                return None
+            
+            data = response.json()
+            if not data.get('ok'):
+                logger.error(f"Slack API error: {data.get('error')}")
+                return None
+            
+            channels = data.get('channels', [])
+            for channel in channels:
+                all_channels.append({
+                    'id': channel.get('id'),
+                    'name': channel.get('name'),
+                    'is_private': channel.get('is_private', False),
+                    'is_channel': channel.get('is_channel', True),
+                    'num_members': channel.get('num_members', 0)
+                })
+            
+            return all_channels
+        except Exception as e:
+            logger.error(f"Error fetching Slack channels: {str(e)}")
+            return None

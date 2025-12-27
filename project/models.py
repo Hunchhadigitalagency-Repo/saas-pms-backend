@@ -52,3 +52,23 @@ class ProjectActivityLog(models.Model):
 
     def __str__(self):
         return f"{self.activity} - {self.project.name}"
+
+
+class ProjectSlackChannel(models.Model):
+    """
+    Model to store Slack channel assignments for projects
+    Allows one or more channels to be connected to a project
+    """
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='slack_channels')
+    channel_id = models.CharField(max_length=255)
+    channel_name = models.CharField(max_length=255)
+    is_private = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        unique_together = ('project', 'channel_id')
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.project.name} - #{self.channel_name}"
