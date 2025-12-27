@@ -263,9 +263,9 @@ class ClientViewSet(viewsets.ModelViewSet):
                 )
             users_in_this_client = UserClientRole.objects.filter(
                 client=user_active_client.client
-            ).select_related('user')
+            ).select_related('user').select_related('user__profile')
             client_users = [user_role.user for user_role in users_in_this_client]
-            serializer = UserSerializer(client_users, many=True)
+            serializer = UserSerializer(client_users, many=True, context={'request': request})
             return Response(serializer.data)
         except Exception as e:
             print(f"Error fetching client users: {type(e).__name__}: {e}")
