@@ -4,7 +4,6 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated
 from settings.models import SlackToken
 from settings.adapters.serializers import SlackTokenSerializer, SlackTokenDetailSerializer
-from customer.models import Client
 import requests
 import logging
 
@@ -24,32 +23,17 @@ class SlackTokenViewSet(viewsets.ModelViewSet):
 
     def get_queryset(self):
         """
-        Return slack token for the current user's client
+        Return all slack tokens
         """
-        user = self.request.user
-        try:
-            client = Client.objects.filter(users=user).first()
-            if client:
-                return SlackToken.objects.filter(client=client)
-        except:
-            pass
-        return SlackToken.objects.none()
+        return SlackToken.objects.all()
 
     @action(detail=False, methods=['get'])
     def check_connection(self, request):
         """
-        Check if Slack is connected for the current client
+        Check if Slack is connected
         """
-        user = request.user
         try:
-            client = Client.objects.filter(users=user).first()
-            if not client:
-                return Response(
-                    {'is_connected': False, 'error': 'No client found'},
-                    status=status.HTTP_404_NOT_FOUND
-                )
-
-            slack_token = SlackToken.objects.filter(client=client).first()
+            slack_token = SlackToken.objects.first()
             if slack_token and slack_token.is_connected and slack_token.slack_token:
                 serializer = SlackTokenDetailSerializer(slack_token)
                 return Response(serializer.data, status=status.HTTP_200_OK)
@@ -71,7 +55,6 @@ class SlackTokenViewSet(viewsets.ModelViewSet):
         Add Slack token and team ID to the database
         Expects: {'slack_token': '...', 'team_id': '...', 'team_name': '...'}
         """
-        user = request.user
         slack_token = request.data.get('slack_token')
         team_id = request.data.get('team_id')
         team_name = request.data.get('team_name')
@@ -83,13 +66,6 @@ class SlackTokenViewSet(viewsets.ModelViewSet):
             )
 
         try:
-            client = Client.objects.filter(users=user).first()
-            if not client:
-                return Response(
-                    {'error': 'No client found for user'},
-                    status=status.HTTP_404_NOT_FOUND
-                )
-
             # Verify token with Slack API
             verification_result = self._verify_slack_token(slack_token, team_id)
             if not verification_result['valid']:
@@ -98,12 +74,11 @@ class SlackTokenViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-            # Create or update SlackToken
+            # Create or update SlackToken (only one instance should exist)
             slack_token_obj, created = SlackToken.objects.update_or_create(
-                client=client,
+                team_id=team_id,
                 defaults={
                     'slack_token': slack_token,
-                    'team_id': team_id,
                     'team_name': team_name or verification_result.get('team_name'),
                     'is_connected': True
                 }
@@ -126,16 +101,8 @@ class SlackTokenViewSet(viewsets.ModelViewSet):
         """
         Disconnect/remove Slack integration
         """
-        user = request.user
         try:
-            client = Client.objects.filter(users=user).first()
-            if not client:
-                return Response(
-                    {'error': 'No client found'},
-                    status=status.HTTP_404_NOT_FOUND
-                )
-
-            slack_token = SlackToken.objects.filter(client=client).first()
+            slack_token = SlackToken.objects.first()
             if slack_token:
                 slack_token.delete()
                 return Response(
