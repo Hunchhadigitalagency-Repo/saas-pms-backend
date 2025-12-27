@@ -1,3 +1,4 @@
+from pms.jwt_auth import CookieJWTAuthentication
 from rest_framework import viewsets, status
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -19,6 +20,7 @@ SLACK_OAUTH_SCOPES = [
 class SlackTokenViewSet(viewsets.ModelViewSet):
     serializer_class = SlackTokenSerializer
     permission_classes = [IsAuthenticated]
+    authentication_classes = [CookieJWTAuthentication]
     queryset = SlackToken.objects.all()
 
     def get_queryset(self):
