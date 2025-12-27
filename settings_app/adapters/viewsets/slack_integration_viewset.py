@@ -67,7 +67,7 @@ class SlackTokenViewSet(viewsets.ModelViewSet):
 
         try:
             # Verify token with Slack API
-            verification_result = self._verify_slack_token(slack_token, team_id)
+            verification_result = self._verify_slack_token_with_slack(slack_token)
             if not verification_result['valid']:
                 return Response(
                     {'error': verification_result.get('error', 'Invalid Slack token')},
@@ -121,10 +121,45 @@ class SlackTokenViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
-    @staticmethod
-    def _verify_slack_token(token, team_id):
+    @action(detail=False, methods=['post'])
+    def verify_token(self, request):
         """
-        Verify Slack token with Slack API
+        Verify Slack token and return team information
+        Expects: {'slack_token': '...'}
+        """
+        slack_token = request.data.get('slack_token')
+
+        if not slack_token:
+            return Response(
+                {'error': 'slack_token is required'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        try:
+            # Verify token with Slack API
+            verification_result = self._verify_slack_token_with_slack(slack_token)
+            if not verification_result['valid']:
+                return Response(
+                    {'error': verification_result.get('error', 'Invalid Slack token')},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            return Response({
+                'ok': True,
+                'team_id': verification_result.get('team_id'),
+                'team': verification_result.get('team_name')
+            }, status=status.HTTP_200_OK)
+        except Exception as e:
+            logger.error(f"Error verifying Slack token: {str(e)}")
+            return Response(
+                {'error': str(e)},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+    @staticmethod
+    def _verify_slack_token_with_slack(token):
+        """
+        Verify Slack token with Slack API and get team info
         """
         try:
             headers = {
@@ -146,11 +181,9 @@ class SlackTokenViewSet(viewsets.ModelViewSet):
             if not data.get('ok'):
                 return {'valid': False, 'error': data.get('error', 'Token verification failed')}
             
-            if data.get('team_id') != team_id:
-                return {'valid': False, 'error': 'Team ID does not match'}
-            
             return {
                 'valid': True,
+                'team_id': data.get('team_id'),
                 'team_name': data.get('team')
             }
         except Exception as e:
